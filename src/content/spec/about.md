@@ -1,27 +1,39 @@
 # 关于我 / About Me
 
-你好！我是 **夏叶** ，一个在数字世界中默默无闻的一片叶子。
+你好，我是 Dream。
 
-## 🛠️ 关于本站
+我是一名持续在学习、写作和编码之间寻找平衡的开发者。这个站点是我整理知识、记录成长和沉淀经验的地方。
 
-这个网站使用 **Astro** 框架构建，采用了 [Firefly](https://github.com/CuteLeaf/Firefly) 模板，Firefly 是基于 [Fuwari](https://github.com/saicaca/fuwari) 的二次开发。
+# 我关注的方向
 
-**Firefly** 是一款基于 Astro 框架和 Fuwari 模板开发的清新美观且现代化个人博客主题模板，专为技术爱好者和内容创作者设计。该主题融合了现代 Web 技术栈，提供了丰富的功能模块和高度可定制的界面，让您能够轻松打造出专业且美观的个人博客网站。
+目前我比较关注这些内容：
 
+编程能力的持续提升
+开发工具链与工作流优化
+知识管理与个人文档体系建设
+从实践中提炼可复用的方法和经验
+相比只关注“学了什么”，我更在意“是否真正理解”和“能不能落地使用”。
 
-**🖥️在线预览： [Firefly - Demo site](https://firefly.cuteleaf.cn/)**
+# 我为什么写作
 
-**📝Firefly使用文档： [https://docs-firefly.cuteleaf.cn](https://docs-firefly.cuteleaf.cn/)**
+写作对我来说，不只是输出，更是一种整理思路的方式。
 
-**⭐Firefly开源地址：[https://github.com/CuteLeaf/Firefly](https://github.com/CuteLeaf/Firefly)** 
+很多时候，一个问题只有在被写清楚之后，才算真正被理解。把经验写下来，也能让我在之后遇到类似问题时更快找到路径，而不是重复走弯路。
 
-**⭐Fuwari开源地址：[https://github.com/saicaca/fuwari](https://github.com/saicaca/fuwari)**
+# 我希望这个站点带来的价值
 
-::github{repo="CuteLeaf/Firefly"}
+我希望这里能做到两件事：
 
-::github{repo="saicaca/fuwari"}
+对自己有价值：成为一个能长期复用的个人知识库
+对别人有价值：让读到这些内容的人少踩一点坑，少走一点弯路
+即使内容并不宏大，只要真实、清晰、可复用，就已经足够有意义。
 
----
+# 当前状态
 
-*感谢你的来访！希望在这里能找到对你有用的内容！*
+这个站点还在持续完善中，很多内容仍然在逐步整理和补充。
 
+它更像一个长期建设中的个人项目，而不是一次性完成的展示页面。未来我会继续把学习记录、技术实践和阶段性总结慢慢补进来，让它变得更完整。
+
+# 一句话总结
+
+保持学习，保持记录，保持构建。
