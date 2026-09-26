@@ -16,6 +16,9 @@ const getDynamicNavBarConfig = (): NavBarConfig => {
     // 主页
     links.push(LinkPresets.Home);
 
+    // 专题
+    links.push(LinkPresets.Hubs);
+
     // 归档及其子菜单
     links.push({
         name: "归档",
@@ -191,6 +194,11 @@ export const LinkPresets: Record<string, NavBarLink> = {
         name: "系列",
         url: "/series/",
         icon: "material-symbols:layers",
+    },
+    Hubs: {
+        name: "专题",
+        url: "/hubs/",
+        icon: "material-symbols:topic",
     },
     Friends: {
         name: "友链",

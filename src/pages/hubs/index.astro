@@ -1,0 +1,63 @@
+---
+import { Icon } from "astro-icon/components";
+import MainGridLayout from "@/layouts/MainGridLayout.astro";
+import { getHubList, getHubUrl } from "@/utils/hub-utils";
+
+const hubs = await getHubList();
+const totalPosts = hubs.reduce((total, hub) => total + hub.posts.length, 0);
+---
+
+<MainGridLayout title="专题" description="按主题聚合的文章合集">
+	<section class="card-base mb-4 px-8 py-6">
+		<div class="flex items-center gap-3">
+			<span class="flex h-11 w-11 items-center justify-center rounded-xl bg-(--primary)/10 text-(--primary)">
+				<Icon name="material-symbols:topic" class="text-2xl" aria-hidden="true" />
+			</span>
+			<div>
+				<h1 class="text-2xl font-bold text-90">专题文章</h1>
+				<p class="mt-1 text-sm text-30">围绕同一主题整理的学习路径与文章合集 · {hubs.length} 个专题，{totalPosts} 篇文章</p>
+			</div>
+		</div>
+	</section>
+
+	{
+		hubs.length > 0 ? (
+			<div class="grid grid-cols-1 gap-4">
+				{
+					hubs.map((hub) => (
+						<a
+							href={getHubUrl(hub.id)}
+							class="hub-card card-base group block p-6 transition hover:-translate-y-0.5"
+						>
+							<div class="flex items-start gap-4">
+								<span class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-(--primary)/10 text-(--primary) transition group-hover:bg-(--primary) group-hover:text-white">
+									<Icon name={hub.data.icon} class="text-2xl" aria-hidden="true" />
+								</span>
+								<div class="min-w-0 flex-1">
+									<h2 class="text-lg font-bold text-90 transition group-hover:text-(--primary)">{hub.data.title}</h2>
+									<p class="mt-2 line-clamp-2 text-sm leading-6 text-50">{hub.data.description}</p>
+									<div class="mt-4 flex items-center justify-between text-sm text-30">
+										<span>{hub.posts.length} 篇文章</span>
+										<Icon name="material-symbols:arrow-forward-rounded" class="text-xl transition group-hover:translate-x-1 group-hover:text-(--primary)" aria-hidden="true" />
+									</div>
+								</div>
+							</div>
+						</a>
+					))
+				}
+			</div>
+		) : (
+			<section class="card-base px-8 py-14 text-center">
+				<Icon name="material-symbols:topic" class="mx-auto mb-4 text-5xl text-30" aria-hidden="true" />
+				<p class="font-bold text-75">暂时还没有专题</p>
+				<p class="mt-2 text-sm text-30">在 src/content/hubs/ 中新增专题，并在文章 frontmatter 写入 hubs 即可。</p>
+			</section>
+		)
+	}
+</MainGridLayout>
+
+<style>
+	.hub-card:hover {
+		box-shadow: 0 12px 30px color-mix(in oklab, var(--primary) 12%, transparent);
+	}
+</style>

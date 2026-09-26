@@ -29,6 +29,10 @@ There is no dedicated unit-test framework configured. Before submitting changes,
 
 Use Conventional Commits, matching the current history: `feat: ...`, `fix: ...`, and `chore: ...`. Keep commits and PRs focused on one concern. PRs should include a concise summary, linked issues when relevant, validation commands run, and screenshots for UI changes. Discuss major features or design changes in an issue or discussion before implementation.
 
+## Mandatory Git Commit Skill
+
+Before running any Git commit operation—including `git commit`, `git commit --amend`, or preparing a commit message—you must read and follow [`skills/git-commit/SKILL.md`](skills/git-commit/SKILL.md) in full. This is mandatory for every commit request. The skill defines the commit scope, required Chinese commit-message format, emoji selection, Git identity lookup, and `Co-Authored-By` requirements; its requirements take precedence over the generic commit convention above when they differ.
+
 ## Security & Configuration Tips
 
 Do not commit secrets, tokens, or service keys in config files. Keep deployment-specific settings in the target platform environment, and review generated files such as `dist`, `src/constants/lqips.json`, and `src/constants/icons.ts` before committing them.

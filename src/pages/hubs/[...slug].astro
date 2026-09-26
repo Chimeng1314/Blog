@@ -1,0 +1,67 @@
+---
+import { getCollection, render } from "astro:content";
+import { Icon } from "astro-icon/components";
+import MainGridLayout from "@/layouts/MainGridLayout.astro";
+import { getPostsForHub } from "@/utils/hub-utils";
+import { getPostUrlBySlug, url } from "@/utils/url-utils";
+
+export async function getStaticPaths() {
+	const hubs = await getCollection("hubs");
+	return hubs.map((hub) => ({ params: { slug: hub.id }, props: { hub } }));
+}
+
+const { hub } = Astro.props;
+const posts = await getPostsForHub(hub.id);
+const { Content } = await render(hub);
+---
+
+<MainGridLayout title={hub.data.title} description={hub.data.description}>
+	<section class="card-base mb-4 px-7 py-7 md:px-9">
+		<div class="flex items-start gap-4">
+			<span class="flex h-13 w-13 shrink-0 items-center justify-center rounded-2xl bg-(--primary)/10 text-(--primary)">
+				<Icon name={hub.data.icon} class="text-3xl" aria-hidden="true" />
+			</span>
+			<div class="min-w-0">
+				<a href={url("/hubs/")} class="text-sm text-50 transition hover:text-(--primary)">专题</a>
+				<h1 class="mt-1 text-2xl font-bold text-90 md:text-3xl">{hub.data.title}</h1>
+				{hub.data.description && <p class="mt-3 leading-7 text-50">{hub.data.description}</p>}
+			</div>
+		</div>
+		<div class="hub-introduction prose mt-5 max-w-none text-75"><Content /></div>
+	</section>
+
+	<section class="card-base overflow-hidden">
+		<header class="flex items-center justify-between border-b border-(--line-divider) px-7 py-5 md:px-9">
+			<h2 class="font-bold text-90">专题文章</h2>
+			<span class="text-sm text-30">{posts.length} 篇</span>
+		</header>
+		{
+			posts.length > 0 ? (
+				<div class="divide-y divide-(--line-divider)">
+					{posts.map((post, index) => (
+						<a href={getPostUrlBySlug(post.id)} class="group flex gap-4 px-7 py-5 transition hover:bg-(--btn-plain-bg-hover) md:px-9">
+							<span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-(--primary)/10 text-sm font-bold text-(--primary)">{index + 1}</span>
+							<span class="min-w-0 flex-1">
+								<span class="block font-bold text-90 transition group-hover:text-(--primary)">{post.data.title}</span>
+								{post.data.description && <span class="mt-1 block line-clamp-2 text-sm leading-6 text-50">{post.data.description}</span>}
+								<span class="mt-2 block text-xs text-30">{post.data.published.toLocaleDateString("zh-CN")}</span>
+							</span>
+							<Icon name="material-symbols:chevron-right-rounded" class="mt-1 shrink-0 text-xl text-30 transition group-hover:translate-x-0.5 group-hover:text-(--primary)" aria-hidden="true" />
+						</a>
+					))}
+				</div>
+			) : (
+				<p class="px-7 py-12 text-center text-sm text-30 md:px-9">这个专题尚未关联文章。</p>
+			)
+		}
+	</section>
+</MainGridLayout>
+
+<style>
+	.hub-introduction :global(:first-child) {
+		margin-top: 0;
+	}
+	.hub-introduction :global(:last-child) {
+		margin-bottom: 0;
+	}
+</style>

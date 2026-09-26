@@ -23,6 +23,7 @@ type PostData = {
 	passwordHint: string;
 	series: string;
 	seriesOrder?: number;
+	hubs: string[];
 	prevTitle: string;
 	prevSlug: string;
 	nextTitle: string;
@@ -54,6 +55,13 @@ type ProjectData = {
 	lang: string;
 };
 
+type HubData = {
+	title: string;
+	description: string;
+	icon: string;
+	order?: number;
+};
+
 type ContentCollection<T> = CollectionConfig<
 	ZodType<T>,
 	ReturnType<typeof glob>
@@ -81,6 +89,7 @@ const postsCollection: ContentCollection<PostData> = defineCollection({
 		passwordHint: z.string().optional().default(""),
 		series: z.string().optional().default(""),
 		seriesOrder: z.number().optional(),
+		hubs: z.array(z.string()).optional().default([]),
 
 		/* For internal use */
 		prevTitle: z.string().default(""),
@@ -130,14 +139,26 @@ const projectsCollection: ContentCollection<ProjectData> = defineCollection({
 	}),
 });
 
+const hubsCollection: ContentCollection<HubData> = defineCollection({
+	loader: glob({ pattern: "**/*.md", base: "./src/content/hubs" }),
+	schema: z.object({
+		title: z.string(),
+		description: z.string().optional().default(""),
+		icon: z.string().optional().default("material-symbols:topic"),
+		order: z.number().optional(),
+	}),
+});
+
 export const collections: {
 	dynamic: typeof dynamicCollection;
 	posts: typeof postsCollection;
 	spec: typeof specCollection;
 	projects: typeof projectsCollection;
+	hubs: typeof hubsCollection;
 } = {
 	dynamic: dynamicCollection,
 	posts: postsCollection,
 	spec: specCollection,
 	projects: projectsCollection,
+	hubs: hubsCollection,
 };
