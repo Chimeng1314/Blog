@@ -76,7 +76,12 @@ export const siteConfig: SiteConfig = {
 	// 页面整体宽度（单位：rem）
 	// 数值越大可以让页面内容区域更宽
 	// 在使用单侧栏边栏时，建议调低一些宽度以获得更好的视觉效果。
-	pageWidth: 100,
+	pageWidth: 90,
+	// 与参考源码一致：桌面在小于 2000px 时等比缩小，最小缩放比例由 Layout 控制为 85%。
+	pageScaling: {
+		enable: true,
+		targetWidth: 2000,
+	},
 
 	// 网站Card样式配置
 	card: {

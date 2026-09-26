@@ -16,6 +16,10 @@ let isSearching = false;
 let initialized = false;
 let debounceTimer: NodeJS.Timeout;
 let searchRequestId = 0;
+let isDesktopSearchExpanded = false;
+let windowJustFocused = false;
+let focusTimer: NodeJS.Timeout;
+let blurTimer: NodeJS.Timeout;
 
 // --- Mocks for Dev Mode ---
 const fakeResult: SearchResult[] = [
@@ -46,8 +50,29 @@ const togglePanel = () => {
 		?.classList.toggle("float-panel-closed");
 };
 
+const setDesktopSearchExpanded = (expanded: boolean): void => {
+	isDesktopSearchExpanded = expanded;
+	document.getElementById("navbar")?.classList.toggle("is-searching", expanded);
+};
+
+const openDesktopSearch = (): void => {
+	if (windowJustFocused) return;
+
+	setDesktopSearchExpanded(true);
+	requestPagefind();
+	setTimeout(() => {
+		document.getElementById("search-input-desktop")?.focus();
+	}, 0);
+};
+
+const collapseDesktopSearch = (): void => {
+	if (!keywordDesktop) setDesktopSearchExpanded(false);
+};
+
 const handleDesktopFocus = (event: FocusEvent): void => {
 	requestPagefind();
+	clearTimeout(blurTimer);
+	setDesktopSearchExpanded(true);
 
 	const input = event.currentTarget;
 	if (
@@ -59,12 +84,19 @@ const handleDesktopFocus = (event: FocusEvent): void => {
 	search(keywordDesktop, true);
 };
 
+const handleDesktopBlur = (): void => {
+	blurTimer = setTimeout(() => {
+		setDesktopSearchExpanded(false);
+		setPanelVisibility(false, true);
+	}, 200);
+};
+
 const setPanelVisibility = (show: boolean, isDesktop: boolean): void => {
 	const panel = document.getElementById("search-panel");
+	if (!panel) return;
 	if (
-		!panel ||
-		(isDesktop && !keywordDesktop) ||
-		(!isDesktop && !keywordMobile)
+		show &&
+		((isDesktop && !keywordDesktop) || (!isDesktop && !keywordMobile))
 	)
 		return;
 	show
@@ -165,11 +197,24 @@ onMount(() => {
 	const panel = document.getElementById("search-panel");
 	panel?.addEventListener(FLOATING_PANEL_CLOSE_EVENT, cancelPendingSearch);
 
+	const handleWindowFocus = () => {
+		windowJustFocused = true;
+		clearTimeout(focusTimer);
+		focusTimer = setTimeout(() => {
+			windowJustFocused = false;
+		}, 500);
+	};
+	window.addEventListener("focus", handleWindowFocus);
+
 	return () => {
 		panel?.removeEventListener(FLOATING_PANEL_CLOSE_EVENT, cancelPendingSearch);
 		document.removeEventListener("pagefindready", initializePagefind);
 		document.removeEventListener("pagefindloaderror", initializePagefind);
+		window.removeEventListener("focus", handleWindowFocus);
+		document.getElementById("navbar")?.classList.remove("is-searching");
 		cancelPendingSearch();
+		clearTimeout(focusTimer);
+		clearTimeout(blurTimer);
 	};
 });
 
@@ -182,19 +227,36 @@ $: if (initialized && (keywordMobile || keywordMobile === "")) {
 }
 </script>
 
-<!-- search bar for desktop view -->
-<div id="search-bar" class="hidden lg:flex transition-all items-center h-11 mr-2 rounded-lg
-      bg-black/4 hover:bg-black/6 focus-within:bg-black/6
-      dark:bg-white/5 dark:hover:bg-white/10 dark:focus-within:bg-white/10
-">
-    <Icon icon="material-symbols:search"
-          class="absolute text-[1.25rem] pointer-events-none ml-3 transition my-auto text-black/30 dark:text-white/30"></Icon>
-    <input id="search-input-desktop" placeholder="{i18n(I18nKey.search)}" bind:value={keywordDesktop}
-           aria-controls="search-panel" data-floating-panel-no-expanded
-           on:focus={handleDesktopFocus}
-           class="transition-all pl-10 text-sm bg-transparent outline-0
-         h-full w-40 active:w-60 focus:w-60 text-black/50 dark:text-white/50"
+<!-- Desktop: keep the 44px search button collapsed until hover, like the source theme. -->
+<div class="hidden lg:block relative w-11 h-11 shrink-0">
+    <div
+        id="search-bar"
+        class="flex transition-all items-center h-11 rounded-lg absolute right-0 top-0 shrink-0
+            {isDesktopSearchExpanded
+                ? 'bg-black/4 hover:bg-black/6 focus-within:bg-black/6 dark:bg-white/5 dark:hover:bg-white/10 dark:focus-within:bg-white/10 w-48'
+                : 'btn-plain active:scale-90 w-11'}"
+        role="button"
+        tabindex="0"
+        aria-label="Search"
+        on:mouseenter={openDesktopSearch}
+        on:mouseleave={collapseDesktopSearch}
+        on:click={() => document.getElementById("search-input-desktop")?.focus()}
     >
+        <Icon
+            icon="material-symbols:search"
+            class="absolute text-[1.25rem] pointer-events-none transition top-1/2 -translate-y-1/2 {isDesktopSearchExpanded ? 'left-3 text-black/30 dark:text-white/30' : 'left-1/2 -translate-x-1/2'}"
+        ></Icon>
+        <input
+            id="search-input-desktop"
+            placeholder={i18n(I18nKey.search)}
+            bind:value={keywordDesktop}
+            aria-controls="search-panel"
+            data-floating-panel-no-expanded
+            on:focus={handleDesktopFocus}
+            on:blur={handleDesktopBlur}
+            class="transition-all pl-10 text-sm bg-transparent outline-0 h-full {isDesktopSearchExpanded ? 'w-36' : 'w-0'} text-black/50 dark:text-white/50"
+        >
+    </div>
 </div>
 
 <!-- toggle btn for phone/tablet view -->

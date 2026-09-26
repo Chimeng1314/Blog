@@ -46,6 +46,12 @@ export type SiteConfig = {
 	// 页面整体宽度（单位：rem）
 	pageWidth?: number;
 
+	// 桌面端页面自动缩放；用于在宽屏以外保持与设计稿一致的比例
+	pageScaling?: {
+		enable: boolean;
+		targetWidth?: number;
+	};
+
 	// 卡片样式配置
 	card: {
 		// 是否开启卡片边框和阴影立体效果

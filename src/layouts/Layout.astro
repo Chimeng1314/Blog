@@ -356,8 +356,44 @@ const ogImageAlt = propsOgImageAlt ?? pageTitle;
         baseUrl: import.meta.env.BASE_URL,
         cardTransparentOpacity: backgroundWallpaper.overlay?.cardOpacity ?? 0.6,
         fullscreenLayout,
+        pageScaling: siteConfig.pageScaling ?? { enable: false },
       }}
     >
+      // 参考主题的桌面页面缩放：在非触控横屏上按目标宽度调整根字号。
+      // 这会同时缩放导航宽高、间距和字体，避免只缩窄导航造成比例失衡。
+      (function () {
+        if (!pageScaling || !pageScaling.enable) return;
+
+        function adjustPageScale() {
+          const isTouch =
+            (window.matchMedia &&
+              (window.matchMedia("(pointer:coarse)").matches ||
+                window.matchMedia("(hover: none)").matches)) ||
+            "ontouchstart" in window;
+          const isPortrait =
+            window.matchMedia &&
+            window.matchMedia("(orientation: portrait)").matches;
+          const isTabletLike = isTouch || window.innerWidth <= 1280;
+
+          if (isTabletLike || isPortrait) {
+            document.documentElement.style.fontSize = "";
+            return;
+          }
+
+          const targetWidth = pageScaling.targetWidth || 2000;
+          const currentWidth = document.documentElement.clientWidth;
+          let scale = currentWidth / targetWidth;
+          if (scale > 1) scale = 1;
+          if (scale < 0.85) scale = 0.85;
+          document.documentElement.style.fontSize = `${scale * 100}%`;
+        }
+
+        adjustPageScale();
+        window.addEventListener("resize", adjustPageScale);
+        document.addEventListener("swup:page:view", adjustPageScale);
+        window.addEventListener("orientationchange", adjustPageScale);
+      })();
+
       // 主题初始化 - 与setting-utils.ts保持一致
       const LIGHT_MODE = "light";
       const DARK_MODE = "dark";
