@@ -28,13 +28,64 @@ import type { FontDefinition, FontSelectionConfig } from "@/types/fontConfig";
 // 本地开发调试的情况下，修改后需要每次重启开发服务器才能生效
 export const fontsList: FontDefinition[] = [
 	{
-		name: "Zen Maru Gothic",
+		// Zen Maru Gothic（SIL Open Font License 1.1）：与参考站使用的 Medium 字体文件一致。
+		name: "ZenMaruGothic-Medium",
 		cssVariable: "--font-zen-maru-gothic",
-		provider: "fontsource",
-		weights: ["300", "400", "500", "600", "700"],
+		provider: "local",
+		weights: ["500"],
 		styles: ["normal"],
-		subsets: ["latin", "cyrillic"],
-		fallbacks: ["sans-serif"],
+		options: {
+			variants: [
+				{
+					src: ["./public/assets/fonts/ZenMaruGothic-Medium.ttf"],
+					weight: "500",
+					style: "normal",
+				},
+			],
+		},
+		fallbacks: [
+			"萝莉体 第二版",
+			"system-ui",
+			"-apple-system",
+			"BlinkMacSystemFont",
+			"Segoe UI",
+			"Roboto",
+			"Oxygen",
+			"Ubuntu",
+			"Cantarell",
+			"Open Sans",
+			"Helvetica Neue",
+			"sans-serif",
+		],
+	},
+	{
+		name: "萝莉体 第二版",
+		cssVariable: "--font-loli",
+		provider: "local",
+		weights: ["400"],
+		styles: ["normal"],
+		options: {
+			variants: [
+				{
+					src: ["./public/assets/fonts/loli.ttf"],
+					weight: "400",
+					style: "normal",
+				},
+			],
+		},
+		fallbacks: [
+			"system-ui",
+			"-apple-system",
+			"BlinkMacSystemFont",
+			"Segoe UI",
+			"Roboto",
+			"Oxygen",
+			"Ubuntu",
+			"Cantarell",
+			"Open Sans",
+			"Helvetica Neue",
+			"sans-serif",
+		],
 	},
 	{
 		name: "Inter",
@@ -89,22 +140,29 @@ export const fontConfig: FontSelectionConfig = {
 	enable: true,
 	// 当前选择的字体 CSS 变量名（对应上方 fonts 中的 cssVariable）
 	// 使用 "system" 表示系统字体（不加载任何自定义字体）
-	selected: ["system"],
+	// 与参考站一致：Zen Maru Gothic 为主字体；未安装的“萝莉体 第二版”作为本机回退字体。
+	selected: ["--font-zen-maru-gothic", "--font-loli"],
 
 	// 各区域独立字体设置（填写上方 fonts 中的 cssVariable，留空则使用全局 selected 字体）
 	// 例如：bannerTitleFont: "--font-inter", 表示主页横幅主标题使用 Inter 字体
 	// 主页横幅主标题字体
 	bannerTitleFont: "--font-zen-maru-gothic",
 	// 主页横幅副标题字体
-	bannerSubtitleFont: "--font-inter",
+	bannerSubtitleFont: "--font-zen-maru-gothic",
 	// 导航栏标题字体
-	navbarTitleFont: "--font-jetbrains-mono",
+	navbarTitleFont: "--font-zen-maru-gothic",
 	// 代码块字体（用于代码高亮和等宽字体场景）
 	codeFont: "--font-jetbrains-mono",
 
 	// 本地字体子集化配置（构建时由 scripts/subset-fonts.ts 处理）
 	// key 为 fonts 数组中对应的 cssVariable，value 为子集化选项
 	subsetFonts: {
+		"--font-zen-maru-gothic": {
+			extraChars: "",
+		},
+		"--font-loli": {
+			extraChars: "",
+		},
 		"--font-greatvibes": {
 			// 额外包含的字符
 			extraChars: "",
