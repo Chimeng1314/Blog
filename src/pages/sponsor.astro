@@ -92,6 +92,8 @@ function getQrLqipProps(qrCode: string) {
                               alt={`${method.name} ${i18n(I18nKey.scanToSponsor)}`}
                               class="relative w-full h-full object-contain opacity-0 transition-opacity duration-500 ease-out"
                               loading="lazy"
+                              onload="this.style.opacity='1'; this.previousElementSibling?.classList.add('loaded');"
+                              onerror="this.previousElementSibling?.classList.add('loaded');"
                             />
                           </div>
                         )}
@@ -203,5 +205,4 @@ function getQrLqipProps(qrCode: string) {
     background-color: oklch(from var(--primary) l c h / 0.15) !important;
   }
 </style>
-
 

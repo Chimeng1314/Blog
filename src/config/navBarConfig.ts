@@ -107,6 +107,20 @@ const getDynamicNavBarConfig = (): NavBarConfig => {
         ],
     });
 
+    // 介绍及其子菜单
+    links.push({
+        name: "介绍",
+        url: "#",
+        icon: "material-symbols:contact-page",
+        children: [
+            // 自我介绍
+            LinkPresets.About,
+
+            // 站点介绍
+            LinkPresets.SiteAbout,
+        ],
+    });
+
     // 关于及其子菜单
     links.push({
         name: "关于",
@@ -115,9 +129,6 @@ const getDynamicNavBarConfig = (): NavBarConfig => {
         children: [
             // 打赏
             LinkPresets.Sponsor,
-
-            // 关于页面
-            LinkPresets.About,
         ],
     });
 
@@ -267,9 +278,14 @@ export const LinkPresets: Record<string, NavBarLink> = {
         pageKey: "sponsor",
     },
     About: {
-        name: "关于我",
+        name: "自我介绍",
         url: "/about/",
         icon: "material-symbols:person",
+    },
+    SiteAbout: {
+        name: "站点介绍",
+        url: "/site-about/",
+        icon: "material-symbols:language",
     },
 };
 
