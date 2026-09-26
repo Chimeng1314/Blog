@@ -60,6 +60,7 @@ type HubData = {
 	description: string;
 	icon: string;
 	order?: number;
+	parent: string;
 };
 
 type ContentCollection<T> = CollectionConfig<
@@ -146,6 +147,7 @@ const hubsCollection: ContentCollection<HubData> = defineCollection({
 		description: z.string().optional().default(""),
 		icon: z.string().optional().default("material-symbols:topic"),
 		order: z.number().optional(),
+		parent: z.string().optional().default(""),
 	}),
 });
 

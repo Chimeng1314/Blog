@@ -1,10 +1,10 @@
 ---
 import { Icon } from "astro-icon/components";
 import MainGridLayout from "@/layouts/MainGridLayout.astro";
-import { getHubList, getHubUrl } from "@/utils/hub-utils";
+import { getHubList, getHubTreePostCount, getHubUrl } from "@/utils/hub-utils";
 
 const hubs = await getHubList();
-const totalPosts = hubs.reduce((total, hub) => total + hub.posts.length, 0);
+const totalPosts = getHubTreePostCount(hubs);
 ---
 
 <MainGridLayout title="专题" description="按主题聚合的文章合集">
@@ -15,7 +15,7 @@ const totalPosts = hubs.reduce((total, hub) => total + hub.posts.length, 0);
 			</span>
 			<div>
 				<h1 class="text-2xl font-bold text-90">专题文章</h1>
-				<p class="mt-1 text-sm text-30">围绕同一主题整理的学习路径与文章合集 · {hubs.length} 个专题，{totalPosts} 篇文章</p>
+				<p class="mt-1 text-sm text-30">围绕同一主题整理的学习路径与文章合集 · {hubs.length} 个一级专题，{totalPosts} 篇文章</p>
 			</div>
 		</div>
 	</section>
@@ -37,7 +37,7 @@ const totalPosts = hubs.reduce((total, hub) => total + hub.posts.length, 0);
 									<h2 class="text-lg font-bold text-90 transition group-hover:text-(--primary)">{hub.data.title}</h2>
 									<p class="mt-2 line-clamp-2 text-sm leading-6 text-50">{hub.data.description}</p>
 									<div class="mt-4 flex items-center justify-between text-sm text-30">
-										<span>{hub.posts.length} 篇文章</span>
+										<span>{hub.children.length > 0 ? `${hub.children.length} 个子专题 · ` : ""}{hub.totalPostCount} 篇文章</span>
 										<Icon name="material-symbols:arrow-forward-rounded" class="text-xl transition group-hover:translate-x-1 group-hover:text-(--primary)" aria-hidden="true" />
 									</div>
 								</div>

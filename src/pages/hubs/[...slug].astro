@@ -2,7 +2,7 @@
 import { getCollection, render } from "astro:content";
 import { Icon } from "astro-icon/components";
 import MainGridLayout from "@/layouts/MainGridLayout.astro";
-import { getPostsForHub } from "@/utils/hub-utils";
+import { findHubInTree, getHubTree, getHubUrl } from "@/utils/hub-utils";
 import { getPostUrlBySlug, url } from "@/utils/url-utils";
 
 export async function getStaticPaths() {
@@ -11,7 +11,10 @@ export async function getStaticPaths() {
 }
 
 const { hub } = Astro.props;
-const posts = await getPostsForHub(hub.id);
+const hubTree = await getHubTree();
+const currentHub = findHubInTree(hubTree, hub.id);
+if (!currentHub) throw new Error(`找不到专题树节点：${hub.id}`);
+const posts = currentHub.posts;
 const { Content } = await render(hub);
 ---
 
@@ -30,9 +33,36 @@ const { Content } = await render(hub);
 		<div class="hub-introduction prose mt-5 max-w-none text-75"><Content /></div>
 	</section>
 
+	{
+		currentHub.children.length > 0 && (
+			<section class="card-base mb-4 overflow-hidden">
+				<header class="flex items-center justify-between border-b border-(--line-divider) px-7 py-5 md:px-9">
+					<h2 class="font-bold text-90">子专题</h2>
+					<span class="text-sm text-30">{currentHub.children.length} 个</span>
+				</header>
+				<div class="grid grid-cols-1 gap-3 p-5 md:p-6">
+					{currentHub.children.map((child) => (
+						<a href={getHubUrl(child.id)} class="group rounded-xl border border-(--line-divider) p-4 transition hover:border-(--primary)/40 hover:bg-(--btn-plain-bg-hover)">
+							<div class="flex items-start gap-3">
+								<span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-(--primary)/10 text-(--primary) transition group-hover:bg-(--primary) group-hover:text-white">
+									<Icon name={child.data.icon} class="text-xl" aria-hidden="true" />
+								</span>
+								<span class="min-w-0 flex-1">
+									<span class="block font-bold text-90 transition group-hover:text-(--primary)">{child.data.title}</span>
+									{child.data.description && <span class="mt-1 block line-clamp-2 text-sm leading-5 text-50">{child.data.description}</span>}
+									<span class="mt-3 flex items-center justify-between text-xs text-30"><span>{child.children.length > 0 ? `${child.children.length} 个子专题 · ` : ""}{child.totalPostCount} 篇文章</span><Icon name="material-symbols:chevron-right-rounded" class="text-lg transition group-hover:translate-x-0.5 group-hover:text-(--primary)" aria-hidden="true" /></span>
+								</span>
+							</div>
+						</a>
+					))}
+				</div>
+			</section>
+		)
+	}
+
 	<section class="card-base overflow-hidden">
 		<header class="flex items-center justify-between border-b border-(--line-divider) px-7 py-5 md:px-9">
-			<h2 class="font-bold text-90">专题文章</h2>
+			<h2 class="font-bold text-90">本专题文章</h2>
 			<span class="text-sm text-30">{posts.length} 篇</span>
 		</header>
 		{
@@ -51,7 +81,7 @@ const { Content } = await render(hub);
 					))}
 				</div>
 			) : (
-				<p class="px-7 py-12 text-center text-sm text-30 md:px-9">这个专题尚未关联文章。</p>
+				<p class="px-7 py-12 text-center text-sm text-30 md:px-9">这个专题暂无直属文章，可继续浏览子专题。</p>
 			)
 		}
 	</section>
