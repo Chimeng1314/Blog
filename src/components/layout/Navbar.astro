@@ -5,7 +5,9 @@ import type { ImageMetadata } from "astro";
 import { Icon } from "astro-icon/components";
 import DisplaySettings from "@/components/controls/DisplaySettingsIntegrated.svelte";
 import LightDarkSwitch from "@/components/controls/LightDarkSwitch.svelte";
+import LayoutSwitch from "@/components/controls/LayoutSwitch.svelte";
 import Search from "@/components/controls/Search.svelte";
+import WallpaperSwitch from "@/components/controls/WallpaperSwitch.svelte";
 import MusicPlayer from "@/components/features/MusicPlayer.astro";
 import {
 	backgroundWallpaper,
@@ -54,9 +56,6 @@ const navbarTitle = siteConfig.navbar.title || siteConfig.title;
 
 // 获取导航栏宽度配置
 const navbarWidthFull = siteConfig.navbar.widthFull ?? false;
-const navbarMenuAlign = siteConfig.navbar.menuAlign ?? "center";
-const isNavbarMenuCentered = navbarMenuAlign === "center";
-
 // 检查是否有任何显示设置可用（总开关关闭时下方各项均为 false）
 const isDisplaySettingsEnabled = displaySettingsConfig.enable;
 const showThemeColor = displaySettingsConfig.themeColorSwitchable;
@@ -157,10 +156,9 @@ const logoVariants = await Promise.all(
     </script>
     <div class:list={[
         className,
-        "overflow-visible! h-12 px-4"
+        "overflow-visible! max-w-(--page-width) h-18 mx-auto flex items-center justify-between px-4"
     ]}>
-        <div class="mx-auto h-full w-full max-w-(--page-width) grid grid-cols-[auto_minmax(0,1fr)_auto] items-center">
-            <a href={url('/')} class="btn-plain scale-animation rounded-lg h-13 px-3 md:px-5 font-bold active:scale-95">
+            <a href={url('/')} class="btn-plain scale-animation rounded-lg h-10 md:h-13 px-5 font-bold active:scale-95 shrink-0 transition-all duration-300">
                 <div class:list={[
                     "flex flex-row items-center text-md",
                     siteConfig.navbar.followTheme ? "text-(--primary)" : "dark:text-white text-black"
@@ -189,17 +187,12 @@ const logoVariants = await Promise.all(
                     {navbarTitle}
                 </div>
             </a>
-            <div class:list={[
-                "hidden lg:flex items-center space-x-1 col-start-2",
-                isNavbarMenuCentered
-                    ? "justify-center"
-                    : "justify-start pl-2"
-            ]}>
+            <div id="navbar-links-container" class="hidden md:flex items-center space-x-1 transition-opacity duration-300">
                 {links.map((l) => {
                     return <DropdownMenu link={l} />;
                 })}
             </div>
-            <div class="flex col-start-3 justify-self-end">
+            <div class="flex items-center gap-1">
                 <!--<SearchPanel client:load>-->
                 <Search
                     client:load
@@ -227,12 +220,15 @@ const logoVariants = await Promise.all(
                         </button>
                 )}
                 {/* @ts-ignore */}
+                <LayoutSwitch client:load></LayoutSwitch>
+                {/* @ts-ignore */}
+                <WallpaperSwitch client:load></WallpaperSwitch>
+                {/* @ts-ignore */}
                 <LightDarkSwitch client:load></LightDarkSwitch>
-                <button aria-label="Menu" aria-controls="nav-menu-panel" aria-expanded="false" name="Nav Menu" class="btn-plain scale-animation rounded-lg w-11 h-11 active:scale-90 lg:hidden!" id="nav-menu-switch">
+                <button aria-label="Menu" aria-controls="nav-menu-panel" aria-expanded="false" name="Nav Menu" class="btn-plain scale-animation rounded-lg w-11 h-11 active:scale-90 md:hidden!" id="nav-menu-switch">
                     <Icon name="material-symbols:menu-rounded" class="text-[1.25rem]"></Icon>
                 </button>
             </div>
-        </div>
         {musicPlayerConfig.showInNavbar && (
             <div id="music-nav-panel" class="float-panel float-panel-closed absolute transition-all right-16 p-2 pt-4.5 w-80 z-50" data-floating-panel data-floating-panel-trigger="music-player-switch" inert aria-hidden="true">
                 <MusicPlayer />
@@ -241,6 +237,15 @@ const logoVariants = await Promise.all(
         {isDisplaySettingsEnabled && <DisplaySettings client:load></DisplaySettings>}
     </div>
 </div>
+
+<style>
+	@media (min-width: 1280px) {
+		#navbar.is-searching #navbar-links-container {
+			opacity: 0;
+			pointer-events: none;
+		}
+	}
+</style>
 
 <script>
 function loadButtonScript() {
