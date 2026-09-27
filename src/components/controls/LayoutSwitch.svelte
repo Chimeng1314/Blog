@@ -1,7 +1,7 @@
 <script lang="ts">
+import { onMount } from "svelte";
 import Icon from "@/components/common/Icon.svelte";
 import { displaySettingsConfig, siteConfig } from "@/config";
-import { onMount } from "svelte";
 
 type LayoutMode = "list" | "grid";
 
@@ -12,7 +12,7 @@ let isSwitching = $state(false);
 function getDefaultLayout(): LayoutMode {
 	return window.innerWidth < 780
 		? (siteConfig.postListLayout.mobileDefaultMode ??
-			siteConfig.postListLayout.defaultMode)
+				siteConfig.postListLayout.defaultMode)
 		: siteConfig.postListLayout.defaultMode;
 }
 
