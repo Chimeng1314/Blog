@@ -1,6 +1,6 @@
 ---
 title: "DRF APIView 源码分析"
-published: 2024-11-03 14:00:00
+published: 2023-08-10 11:14:00
 category: Web 开发
 series: "DRF 源码分析"
 seriesOrder: 4

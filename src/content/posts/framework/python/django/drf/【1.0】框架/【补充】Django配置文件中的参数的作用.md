@@ -1,6 +1,6 @@
 ---
 title: "Django 配置参数的作用"
-published: 2024-10-30 14:00:00
+published: 2023-08-07 14:08:00
 category: Web 开发
 series: "DRF 基础"
 seriesOrder: 20

@@ -1,6 +1,6 @@
 ---
 title: "Django 中的信号"
-published: 2024-10-31 14:00:00
+published: 2023-08-10 08:18:00
 category: Web 开发
 series: "DRF 基础"
 seriesOrder: 22

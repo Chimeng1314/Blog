@@ -1,6 +1,6 @@
 ---
 title: "Django on_delete 参数详解"
-published: 2024-11-01 09:00:00
+published: 2023-08-10 09:02:00
 category: Web 开发
 series: "DRF 基础"
 seriesOrder: 23

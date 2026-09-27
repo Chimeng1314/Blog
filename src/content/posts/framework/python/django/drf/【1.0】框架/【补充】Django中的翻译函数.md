@@ -1,6 +1,6 @@
 ---
 title: "Django 中的翻译函数"
-published: 2024-10-31 09:00:00
+published: 2023-08-07 15:12:00
 category: Web 开发
 series: "DRF 基础"
 seriesOrder: 21
