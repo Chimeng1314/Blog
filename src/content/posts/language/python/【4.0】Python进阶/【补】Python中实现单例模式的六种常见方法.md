@@ -1,6 +1,6 @@
 ---
 title: "Python中实现单例模式的六种常见方法"
-published: 2024-08-20 15:00:00
+published: 2023-05-31 09:02:00
 category: 编程语言
 series: "Python 面向对象进阶"
 seriesOrder: 14
