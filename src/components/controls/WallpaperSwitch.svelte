@@ -1,4 +1,5 @@
 <script lang="ts">
+import { onMount } from "svelte";
 import DropdownItem from "@/components/common/DropdownItem.svelte";
 import Icon from "@/components/common/Icon.svelte";
 import { displaySettingsConfig } from "@/config";
@@ -15,7 +16,6 @@ import {
 	getStoredWallpaperMode,
 	setWallpaperMode,
 } from "@/utils/setting-utils";
-import { onMount } from "svelte";
 
 const options: { mode: WALLPAPER_MODE; icon: string; label: I18nKey }[] = [
 	{
@@ -72,7 +72,8 @@ onMount(() => {
 		if (nextMode) mode = nextMode;
 	};
 	const handlePointerDown = (event: PointerEvent) => {
-		if (event.target instanceof Node && !root.contains(event.target)) closePanel();
+		if (event.target instanceof Node && !root.contains(event.target))
+			closePanel();
 	};
 	const handleKeydown = (event: KeyboardEvent) => {
 		if (event.key !== "Escape") return;
