@@ -1,0 +1,1272 @@
+---
+title: "TCP 简单套接字补充"
+published: 2024-11-29 14:00:00
+category: Python 学习
+series: "Python 网络编程"
+seriesOrder: 18
+hubs: ["python-network-programming"]
+---
+
+# 基于TCP协议的简单套接字(打电话模型)
+
+## 【一】简单版1.0
+
+### 服务端
+
+```python
+# -*-coding: Utf-8 -*-
+# @File : 服务端 .py
+# author: Chimengmeng
+# blog_url : https://www.cnblogs.com/dream-ze/
+# Time：2023/6/20
+import socket
+
+# 【1】.买手机
+# socket.SOCK_STREAM ：流式协议 ----> TCP协议 ----> 所有数据是一个整体
+# socket.SOCK_DGRAM : 报协议  ----> 每一次数据都是单独一部分
+phone = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+# 【2】.绑定手机卡 ---> 192.168.1.50(本机IP地址)
+# 0.0.0.0(任意IP地址) ---> 关联公网IP才会起作用  ----> 服务器用
+# 127.0.0.1(本机固定IP地址) ---> 只有本机才能访问这个地址（测试用）
+# 端口号：0-65535, 1024以前的都被系统保留使用
+# phone.bind(('ip', port))
+phone.bind(('127.0.0.1', 8080))
+
+# 【3】.开机 -- 监听状态
+# 5 ：指的是半连接池的大小
+phone.listen(5)
+print(f'服务器启动,开始监听ip:>>>{"127.0.0.1"},port:>>>{8080}')
+# （1）服务器启动,开始监听ip:>>>127.0.0.1,port:>>>8080
+
+# 【4】.等待电话链接请求:拿到电话链接 conn
+# 返回的是双向通路 --- 操作系统维持链接
+# conn ： 双向通路的链接
+# client_addr ： 客户端的iP和端口
+conn, client_addr = phone.accept()
+print('这是服务端的conn:>>>', conn)
+# （3）这是服务端的conn:>>> <socket.socket fd=352, family=AddressFamily.AF_INET, type=SocketKind.SOCK_STREAM, proto=0, laddr=('127.0.0.1', 8080), raddr=('127.0.0.1', 5249)>
+print('这是服务端的client_addr:>>>', client_addr)
+# （4）这是服务端的client_addr:>>> ('127.0.0.1', 5249)
+
+# 【5】.接收消息
+# 1024 ：最大接受的数据量为1024 bytes类型，收到的是bytes类型
+data = conn.recv(1024)
+# 对接受的二进制数据进行解码
+print('从客户端接受的数据:>>>>', data.decode('utf-8'))
+# （5）从客户端接受的数据:>>>> is running for 发送信息
+# 发消息 返回消息状态等信息
+conn.send(data.upper())
+
+# 【6】.关闭连接(必选的回收资源操作) conn
+# 完成后断开连接
+conn.close()
+
+# 【7】.关机(可选操作)
+phone.close()
+```
+
+### 客户端
+
+```python
+# -*-coding: Utf-8 -*-
+# @File : 客户端 .py
+# author: Chimengmeng
+# blog_url : https://www.cnblogs.com/dream-ze/
+# Time：2023/6/20
+import socket
+
+# 【1】.买手机
+phone = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+# 【2】.拨通服务端电话
+# connect(('服务端ip', 服务端端口))
+phone.connect(('127.0.0.1', 8080))
+# （2）
+# 【3】.通信
+# send(二进制数据类型)
+phone.send('is running for 发送信息'.encode('utf8'))
+
+# 接受服务端返回的数据
+data = phone.recv(1024)
+# 打印返回的消息 解码
+print(data.decode('utf8'))
+# （6）IS RUNNING FOR 发送信息
+
+# 【4】.关闭连接(必选的回收资源操作)
+phone.close()
+```
+
+> 上面的问题就是信息只能传输一次
+
+## 【二】升级版2.0
+
+> 加上通信循环
+
+### 【1】版本2.1 - 通信循环结束条件
+
+#### 服务端
+
+```python
+# -*-coding: Utf-8 -*-
+# @File : 服务端 .py
+# author: Chimengmeng
+# blog_url : https://www.cnblogs.com/dream-ze/
+# Time：2023/6/20
+import socket
+
+# 【1】.买手机
+# socket.SOCK_STREAM ：流式协议 ----> TCP协议 ----> 所有数据是一个整体
+# socket.SOCK_DGRAM : 报协议  ----> 每一次数据都是单独一部分
+phone = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+# 【2】.绑定手机卡 ---> 192.168.1.50(本机IP地址)
+# 0.0.0.0(任意IP地址) ---> 关联公网IP才会起作用  ----> 服务器用
+# 127.0.0.1(本机固定IP地址) ---> 只有本机才能访问这个地址（测试用）
+# 端口号：0-65535, 1024以前的都被系统保留使用
+# phone.bind(('ip', port))
+phone.bind(('127.0.0.1', 8080))
+
+# 【3】.开机 -- 监听状态
+# 5 ：指的是半连接池的大小
+phone.listen(5)
+print(f'服务器启动,开始监听ip:>>>{"127.0.0.1"},port:>>>{8080}')
+# （1）服务器启动,开始监听ip:>>>127.0.0.1,port:>>>8080
+
+# 【4】.等待电话链接请求:拿到电话链接 conn
+# 返回的是双向通路 --- 操作系统维持链接
+# conn ： 双向通路的链接
+# client_addr ： 客户端的iP和端口
+conn, client_addr = phone.accept()
+print('这是服务端的conn:>>>', conn)
+# （3）这是服务端的conn:>>> <socket.socket fd=352, family=AddressFamily.AF_INET, type=SocketKind.SOCK_STREAM, proto=0, laddr=('127.0.0.1', 8080), raddr=('127.0.0.1', 5249)>
+print('这是服务端的client_addr:>>>', client_addr)
+# （4）这是服务端的client_addr:>>> ('127.0.0.1', 5249)
+
+while True:
+    # 【5】.接收消息
+    # 1024 ：最大接受的数据量为1024 bytes类型，收到的是bytes类型
+    data = conn.recv(1024)
+
+    if data.decode('utf-8') == 'q':
+        break
+
+    # 对接受的二进制数据进行解码
+    print('从客户端接受的数据:>>>>', data.decode('utf-8'))
+    # （5）从客户端接受的数据:>>>> is running for 发送信息
+    # 发消息 返回消息状态等信息
+    conn.send(data.upper())
+
+# 【6】.关闭连接(必选的回收资源操作) conn
+# 完成后断开连接
+conn.close()
+
+# 【7】.关机(可选操作)
+phone.close()
+```
+
+#### 客户端
+
+```python
+# -*-coding: Utf-8 -*-
+# @File : 客户端 .py
+# author: Chimengmeng
+# blog_url : https://www.cnblogs.com/dream-ze/
+# Time：2023/6/20
+import socket
+
+# 【1】.买手机
+phone = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+# 【2】.拨通服务端电话
+# connect(('服务端ip', 服务端端口))
+phone.connect(('127.0.0.1', 8080))
+# （2）
+
+while True:
+
+    # 【3】.通信
+    # send(二进制数据类型)
+    msg = input('请输入需要发送的消息:>>>>').strip()
+
+    phone.send(f'{msg}'.encode('utf8'))
+
+    # 加入结束条件强制结束通信
+    if msg == 'q':
+        break
+
+    # 接受服务端返回的数据
+    data = phone.recv(1024)
+    # 打印返回的消息 解码
+    print(data.decode('utf8'))
+    # （6）IS RUNNING FOR 发送信息
+
+# 【4】.关闭连接(必选的回收资源操作)
+phone.close()
+
+```
+
+> 输入的信息为空时，会阻塞通信
+>
+> 阻塞在服务端的反馈信息位置
+>
+> 客户端的接受信息不能为空
+
+### 【2】版本2.2 - 用户输入信息为空时阻塞
+
+#### 客户端
+
+```python
+# -*-coding: Utf-8 -*-
+# @File : 客户端 .py
+# author: Chimengmeng
+# blog_url : https://www.cnblogs.com/dream-ze/
+# Time：2023/6/20
+import socket
+
+# 【1】.买手机
+phone = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+# 【2】.拨通服务端电话
+# connect(('服务端ip', 服务端端口))
+phone.connect(('127.0.0.1', 8080))
+# （2）
+
+while True:
+
+    # 【3】.通信
+    # send(二进制数据类型)
+    msg = input('请输入需要发送的消息:>>>>').strip()
+
+    phone.send(f'{msg}'.encode('utf8'))
+
+    if len(msg) == 0: continue
+    # 加入结束条件强制结束通信
+    if msg == 'q':
+        break
+
+    # 接受服务端返回的数据
+    data = phone.recv(1024)
+    # 打印返回的消息 解码
+    print(data.decode('utf8'))
+    # （6）IS RUNNING FOR 发送信息
+
+# 【4】.关闭连接(必选的回收资源操作)
+phone.close()
+
+```
+
+#### 服务端
+
+```python
+# -*-coding: Utf-8 -*-
+# @File : 服务端 .py
+# author: Chimengmeng
+# blog_url : https://www.cnblogs.com/dream-ze/
+# Time：2023/6/20
+import socket
+
+# 【1】.买手机
+# socket.SOCK_STREAM ：流式协议 ----> TCP协议 ----> 所有数据是一个整体
+# socket.SOCK_DGRAM : 报协议  ----> 每一次数据都是单独一部分
+phone = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+# 【2】.绑定手机卡 ---> 192.168.1.50(本机IP地址)
+# 0.0.0.0(任意IP地址) ---> 关联公网IP才会起作用  ----> 服务器用
+# 127.0.0.1(本机固定IP地址) ---> 只有本机才能访问这个地址（测试用）
+# 端口号：0-65535, 1024以前的都被系统保留使用
+# phone.bind(('ip', port))
+phone.bind(('127.0.0.1', 8080))
+
+# 【3】.开机 -- 监听状态
+# 5 ：指的是半连接池的大小
+phone.listen(5)
+print(f'服务器启动,开始监听ip:>>>{"127.0.0.1"},port:>>>{8080}')
+# （1）服务器启动,开始监听ip:>>>127.0.0.1,port:>>>8080
+
+# 【4】.等待电话链接请求:拿到电话链接 conn
+# 返回的是双向通路 --- 操作系统维持链接
+# conn ： 双向通路的链接
+# client_addr ： 客户端的iP和端口
+conn, client_addr = phone.accept()
+print('这是服务端的conn:>>>', conn)
+# （3）这是服务端的conn:>>> <socket.socket fd=352, family=AddressFamily.AF_INET, type=SocketKind.SOCK_STREAM, proto=0, laddr=('127.0.0.1', 8080), raddr=('127.0.0.1', 5249)>
+print('这是服务端的client_addr:>>>', client_addr)
+# （4）这是服务端的client_addr:>>> ('127.0.0.1', 5249)
+
+while True:
+    # 【5】.接收消息
+    # 1024 ：最大接受的数据量为1024 bytes类型，收到的是bytes类型
+    data = conn.recv(1024)
+
+    if data.decode('utf-8') == 'q':
+        break
+
+    # 对接受的二进制数据进行解码
+    print('从客户端接受的数据:>>>>', data.decode('utf-8'))
+    # （5）从客户端接受的数据:>>>> is running for 发送信息
+    # 发消息 返回消息状态等信息
+    conn.send(data.upper())
+
+# 【6】.关闭连接(必选的回收资源操作) conn
+# 完成后断开连接
+conn.close()
+
+# 【7】.关机(可选操作)
+phone.close()
+
+```
+
+> 客户端强制终止程序时，服务端会产生一系列问题
+
+### 【3】版本2.3 - 用户信息为空时检测异常
+
+- 客户端
+
+```python
+# -*-coding: Utf-8 -*-
+# @File : 客户端 .py
+# author: Chimengmeng
+# blog_url : https://www.cnblogs.com/dream-ze/
+# Time：2023/6/20
+import socket
+
+# 【1】.买手机
+phone = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+# 【2】.拨通服务端电话
+# connect(('服务端ip', 服务端端口))
+phone.connect(('127.0.0.1', 8080))
+# （2）
+
+while True:
+
+    # 【3】.通信
+    # send(二进制数据类型)
+    msg = input('请输入需要发送的消息:>>>>').strip()
+
+    phone.send(f'{msg}'.encode('utf8'))
+
+    if len(msg) == 0: continue
+    # 加入结束条件强制结束通信
+    if msg == 'q':
+        break
+
+    # 接受服务端返回的数据
+    data = phone.recv(1024)
+    # 打印返回的消息 解码
+    print(data.decode('utf8'))
+    # （6）IS RUNNING FOR 发送信息
+
+# 【4】.关闭连接(必选的回收资源操作)
+phone.close()
+```
+
+- 服务端
+
+```python
+# -*-coding: Utf-8 -*-
+# @File : 服务端 .py
+# author: Chimengmeng
+# blog_url : https://www.cnblogs.com/dream-ze/
+# Time：2023/6/20
+import socket
+
+# 【1】.买手机
+# socket.SOCK_STREAM ：流式协议 ----> TCP协议 ----> 所有数据是一个整体
+# socket.SOCK_DGRAM : 报协议  ----> 每一次数据都是单独一部分
+phone = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+# 【2】.绑定手机卡 ---> 192.168.1.50(本机IP地址)
+# 0.0.0.0(任意IP地址) ---> 关联公网IP才会起作用  ----> 服务器用
+# 127.0.0.1(本机固定IP地址) ---> 只有本机才能访问这个地址（测试用）
+# 端口号：0-65535, 1024以前的都被系统保留使用
+# phone.bind(('ip', port))
+phone.bind(('127.0.0.1', 8080))
+
+# 【3】.开机 -- 监听状态
+# 5 ：指的是半连接池的大小
+phone.listen(5)
+print(f'服务器启动,开始监听ip:>>>{"127.0.0.1"},port:>>>{8080}')
+# （1）服务器启动,开始监听ip:>>>127.0.0.1,port:>>>8080
+
+# 【4】.等待电话链接请求:拿到电话链接 conn
+# 返回的是双向通路 --- 操作系统维持链接
+# conn ： 双向通路的链接
+# client_addr ： 客户端的iP和端口
+conn, client_addr = phone.accept()
+print('这是服务端的conn:>>>', conn)
+# （3）这是服务端的conn:>>> <socket.socket fd=352, family=AddressFamily.AF_INET, type=SocketKind.SOCK_STREAM, proto=0, laddr=('127.0.0.1', 8080), raddr=('127.0.0.1', 5249)>
+print('这是服务端的client_addr:>>>', client_addr)
+# （4）这是服务端的client_addr:>>> ('127.0.0.1', 5249)
+
+while True:
+    # 【5】.接收消息
+    # 1024 ：最大接受的数据量为1024 bytes类型，收到的是bytes类型
+    try:
+        data = conn.recv(1024)
+
+        if len(data) == 0:
+            # 在 unix 系统里，一旦data收到的内容为空
+            # 就意味着一种异常行为：客户端非法断开了链接
+            break
+
+        if data.decode('utf-8') == 'q':
+            break
+
+        # 对接受的二进制数据进行解码
+        print('从客户端接受的数据:>>>>', data.decode('utf-8'))
+        # （5）从客户端接受的数据:>>>> is running for 发送信息
+        # 发消息 返回消息状态等信息
+        conn.send(data.upper())
+    except Exception as e:
+        break
+
+# 【6】.关闭连接(必选的回收资源操作) conn
+# 完成后断开连接
+conn.close()
+
+# 【7】.关机(可选操作)
+phone.close()
+```
+
+## 【三】迭代版3.0
+
+- 服务端应该满足的特点
+  - 服务端一直提供服务
+    - 在建立连接与结束链接之间再加上一层 循环
+  - 服务端并发提供服务
+
+### 【1】3.1 - 链接循环（循环建立链接）
+
+- 客户端
+
+```python
+# -*-coding: Utf-8 -*-
+# @File : 客户端 .py
+# author: Chimengmeng
+# blog_url : https://www.cnblogs.com/dream-ze/
+# Time：2023/6/20
+import socket
+
+# 【1】.买手机
+phone = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+# 【2】.拨通服务端电话
+# connect(('服务端ip', 服务端端口))
+phone.connect(('127.0.0.1', 8080))
+# （2）
+
+while True:
+
+    # 【3】.通信
+    # send(二进制数据类型)
+    msg = input('请输入需要发送的消息:>>>>').strip()
+
+    phone.send(f'{msg}'.encode('utf8'))
+
+    if len(msg) == 0: continue
+    # 加入结束条件强制结束通信
+    if msg == 'q':
+        break
+
+    # 接受服务端返回的数据
+    data = phone.recv(1024)
+    # 打印返回的消息 解码
+    print(data.decode('utf8'))
+    # （6）IS RUNNING FOR 发送信息
+
+# 【4】.关闭连接(必选的回收资源操作)
+phone.close()
+```
+
+- 服务端
+
+```python
+# -*-coding: Utf-8 -*-
+# @File : 服务端 .py
+# author: Chimengmeng
+# blog_url : https://www.cnblogs.com/dream-ze/
+# Time：2023/6/20
+import socket
+
+# 【1】.买手机
+# socket.SOCK_STREAM ：流式协议 ----> TCP协议 ----> 所有数据是一个整体
+# socket.SOCK_DGRAM : 报协议  ----> 每一次数据都是单独一部分
+phone = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+# 【2】.绑定手机卡 ---> 192.168.1.50(本机IP地址)
+# 0.0.0.0(任意IP地址) ---> 关联公网IP才会起作用  ----> 服务器用
+# 127.0.0.1(本机固定IP地址) ---> 只有本机才能访问这个地址（测试用）
+# 端口号：0-65535, 1024以前的都被系统保留使用
+# phone.bind(('ip', port))
+phone.bind(('127.0.0.1', 8080))
+
+# 【3】.开机 -- 监听状态
+# 5 ：指的是半连接池的大小
+phone.listen(5)
+print(f'服务器启动,开始监听ip:>>>{"127.0.0.1"},port:>>>{8080}')
+# （1）服务器启动,开始监听ip:>>>127.0.0.1,port:>>>8080
+
+# 【4】.等待电话链接请求:拿到电话链接 conn
+#  ---- 加上链接循环 ----> 循环建链接
+while True:
+    # 返回的是双向通路 --- 操作系统维持链接
+    # conn ： 双向通路的链接
+    # client_addr ： 客户端的iP和端口
+    conn, client_addr = phone.accept()
+    # （3）这是服务端的conn:>>> <socket.socket fd=352, family=AddressFamily.AF_INET, type=SocketKind.SOCK_STREAM, proto=0, laddr=('127.0.0.1', 8080), raddr=('127.0.0.1', 5249)>
+    print('这是服务端的client_addr:>>>', client_addr)
+    # （4）这是服务端的client_addr:>>> ('127.0.0.1', 5249)
+
+    while True:
+        # 【5】.接收消息
+        # 1024 ：最大接受的数据量为1024 bytes类型，收到的是bytes类型
+        try:
+            data = conn.recv(1024)
+
+            if len(data) == 0:
+                # 在 unix 系统里，一旦data收到的内容为空
+                # 就意味着一种异常行为：客户端非法断开了链接
+                break
+
+            if data.decode('utf-8') == 'q':
+                break
+
+            # 对接受的二进制数据进行解码
+            print('从客户端接受的数据:>>>>', data.decode('utf-8'))
+            # （5）从客户端接受的数据:>>>> is running for 发送信息
+            # 发消息 返回消息状态等信息
+            conn.send(data.upper())
+        except Exception as e:
+            break
+
+    # 【6】.关闭连接(必选的回收资源操作) conn
+    # 完成后断开连接
+    conn.close()
+
+# 【7】.关机(可选操作)
+phone.close()
+```
+
+# 基于UDP协议的简单套接字
+
+> UDP协议  ----->  数据报协议
+
+## 【一】简单版1.0
+
+### 【1】TCP协议所遇到的空数据问题是否存在？
+
+> TCP协议是水流式协议：传入的数据不能为空，因为水是一直流的，在传输过程中不会对数据进行操作
+>
+> UDP协议是数据报协议：传入的数据可为空，在传输过程中UDP会对数据进行内部的拼接和处理
+
+- 客户端
+
+```python
+# -*-coding: Utf-8 -*-
+# @File : 客户端 .py
+# author: Chimengmeng
+# blog_url : https://www.cnblogs.com/dream-ze/
+# Time：2023/6/22
+import socket
+
+# 建立socket对象
+server = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+
+while True:
+    # 向服务端发送消息
+    msg = input('msg:>>>>').strip()
+    server.sendto(f'{msg}'.encode('utf8'), ('127.0.0.1', 8082))
+
+    # 接受服务器返回的消息
+    data_msg, server_addr = server.recvfrom(1024)
+    msg_data = data_msg.decode("utf8")
+    IP = server_addr[0]
+    PORT = server_addr[1]
+    print(f'服务端返回拿到的消息:>>>>{data_msg}')
+    print(f'服务端返回拿到的IP:>>>>{IP}')
+    print(f'服务端返回拿到的端口:>>>>{PORT}')
+
+# 关闭链接
+server.close()
+```
+
+- 服务端
+
+```python
+# -*-coding: Utf-8 -*-
+# @File : 服务端 .py
+# author: Chimengmeng
+# blog_url : https://www.cnblogs.com/dream-ze/
+# Time：2023/6/22
+import socket
+
+# 数据报协议  ------>  UDP 协议
+server = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+
+# 建立链接  ip + 端口
+server.bind(('127.0.0.1', 8082))
+
+# 接收到服务端传进来的消息
+# 接受收到的 ip 和 端口 对于UDP 来说是非常重要的 因为UDP协议没有建立链接操作
+# 返回信息就需要用到拿到的ip和端口
+msg_data, clint_addr = server.recvfrom(1024)
+msg_data = msg_data.decode("utf8")
+IP = clint_addr[0]
+PORT = clint_addr[1]
+print(f'客户端提供的拿到的消息:>>>>{msg_data}')
+print(f'客户端提供的拿到的IP:>>>>{IP}')
+print(f'客户端提供的拿到的端口:>>>>{PORT}')
+
+while True:
+    # 建立链接，返回消息内容
+    return_msg = msg_data.upper().encode('utf-8')
+    server.sendto(return_msg, clint_addr)
+
+# 关闭服务
+server.close()
+```
+
+### 【2】TCP协议所遇到的客户端断开链接是否会影响到服务端？
+
+> TCP协议是水流式协议：在建立链接过程中，服务端和客户端的链接是一直存在的，断开一方都会对另一方造成影响
+>
+> UDP协议是数据报协议：在建立链接过程中，是通过解析对方数据中的ip和端口，再向另一方返回数据的，所以一方发生问题并不会影响到另一方
+
+## 【二】应用
+
+### 【1】聊天室的创建
+
+- 客户端输入消息
+  - 将数据上传到服务器
+- 服务器解析收到的数据，根据接收到的数据进行返回数据
+
+# 基于 TCP 协议实现服务端执行代码将结果反馈给客户端
+
+> TCP协议是流式协议：在数据传输过程中大量数据的传入会造成数据的丢失和不完整
+
+> 解决数据传输过程中的问题：自定义协议
+
+> 应用：基于网络上传和下载文件
+
+> socketserver：基于模块实现并发
+
+- 服务端满足的条件
+  - 一直对外提供服务
+  - 并发的服务多个客户端
+
+## 【一】传输过程1.0
+
+### （1）需求
+
+- 客户端发送需要执行的代码
+- 服务端接收到客户端传过来的代码
+  - 服务端调用方法执行代码并拿到执行后的结果
+  - 服务端将执行后的结果进行返回
+- 客户端接收到服务端返回的结果并做打印输出
+
+### （2）基础版1.1
+
+- 服务端
+
+```python
+# -*-coding: Utf-8 -*-
+# @File : 服务端 .py
+# author: Chimengmeng
+# blog_url : https://www.cnblogs.com/dream-ze/
+# Time：2023/6/22
+
+# client.connect(('127.0.0.1', 8880))
+# 客户端设置的 ip 和 port
+from socket import *
+
+# 执行命令模块
+import subprocess
+
+# 创建服务对象
+server = socket(AF_INET, SOCK_STREAM)
+
+# 建立链接桥梁
+server.bind(('127.0.0.1', 8080))
+
+# 指定半连接池大小
+server.listen(5)
+
+# 接收数据和发送数据
+while True:
+    # 从半连接池里面取出链接请求，建立双向链接，拿到连接对象
+    # 拿到 建成的链接对象 和 客户端的 ip port
+    conn, client_addr = server.accept()
+
+    while True:
+        # 检测可能会抛出的异常 并 对异常做处理
+        try:
+            # 基于 取出的链接对象 进行通信
+            cmd_from_client = conn.recv(1024)
+
+            # 不允许传过来的信息为空
+            if len(cmd_from_client) == 0:
+                break
+
+            # 执行客户端传过来的命令
+            # 接收执行命令的结果
+            msg_server = subprocess.Popen(cmd_from_client.decode('utf-8'),  # 对命令进行解码
+                                          shell=True,  # 执行shell命令
+                                          stdout=subprocess.PIPE,  # 管道一
+                                          stderr=subprocess.PIPE,  # 管道二
+                                          )
+
+            # 返回命令的结果  ---- 成功或失败  （Linux系统可以用utf-8解码，Windows系统需要用gbk解码）
+            true_msg = msg_server.stdout.read()  # 读取到执行成功的结果 ---- 二进制数据类型
+            false_msg = msg_server.stderr.read()  # 读取到执行失败的结果 ---- 二进制数据类型
+
+            # 反馈信息给 发送信息的客户端
+            conn.send(true_msg)
+            conn.send(false_msg)
+
+        except Exception as e:
+            break
+    conn.close()
+```
+
+- 客户端
+
+```python
+# -*-coding: Utf-8 -*-
+# @File : 客户端 .py
+# author: Chimengmeng
+# blog_url : https://www.cnblogs.com/dream-ze/
+# Time：2023/6/22
+
+from socket import *
+
+# 创建  socket 对象
+client = socket(AF_INET, SOCK_STREAM)
+
+# 创建链接 IP 和 端口
+client.connect(('127.0.0.1', 8080))
+
+while True:
+    msg = input('enter msg :>>>').strip()
+
+    # 输入的内容不能为空
+    if len(msg) == 0: continue
+
+    # 传输过程中的数据为二进制数据。对文本数据进行转码
+    msg = msg.encode('utf-8')
+    client.send(msg)
+
+    # 接收来自服务端返回的结果
+    msg_from_server = client.recv(1024)
+
+    # 对服务端返回的信息进行解码（Mac/Linux解码用utf-8，Windows用GBK）
+    msg_from_server = msg_from_server.decode('gbk')
+    print(msg_from_server)
+
+    client.close()
+```
+
+> - 问题：
+>   - 服务端：
+>     - 执行代码，代码为空会报错
+>     - 执行代码，返回的数据可能存在空/报错信息
+>   - 客户端：
+>     - 输入的指令长度，可能会超出范围
+>     - 接受到的服务端反馈的结果可能会特别多
+>     - 如何打印超出数据范围（缓存到系统里）的数据
+
+> - 由此引出粘包问题：
+>   - 在 TCP 协议中是流式协议，数据是源源不断的传入到客户端中，但是客户端可以接受到的信息的长度是有限的
+>   - 当接收到指定长度的信息后，客户端进行打印输出
+>     - 剩余的其他数据会被缓存到 内存中
+>   - 当再次执行其他命令时
+>     - 新的数据的反馈结果，会叠加到上一次没有完全打印完全的信息的后面，造成数据的错乱
+>   - 当客户端想打印新的命令的数据时，打印的其实是上一次没有打印完的数据
+>     - 对数据造成的错乱
+> - 如何解决？ 
+>   - 解决粘包问题：解决办法
+>   - （1） 拿到数据的总大小  `recv_total_size`
+>   - （2） `recv_size = 0` ，循环接收，每接收一次，`recv_size += 接收的长度 `
+>   - （3） 直到 `recv_size = recv_total_size` 表示接受信息完毕，结束循环
+
+## 【二】粘包问题解决2.0
+
+### （1）粘包问题
+
+- 粘包问题出现的原因
+  - TCP 协议是流式协议，数据像水流一样粘在一起，没有任何边界之分
+  - 收数据没有接收干净，有残留，就会和下一次的结果混淆在一起
+- 解决粘包问题的核心法门就是
+  - 每次都收干净
+  - 不造成数据的混淆
+
+```
+发送端可以是一K一K地发送数据，而接收端的应用程序可以两K两K地提走数据，
+
+当然也有可能一次提走3K或6K数据，或者一次只提走几个字节的数据，也就是说，应用程序所看到的数据是一个整体，或说是一个流（stream），一条消息有多少字节对应用程序是不可见的
+
+因此TCP协议是面向流的协议，这也是容易出现粘包问题的原因。
+
+而UDP是面向消息的协议，每个UDP段都是一条消息，应用程序必须以消息为单位提取数据，不能一次提取任意字节的数据，这一点和TCP是很不同的。
+
+怎样定义消息呢？可以认为对方一次性write/send的数据为一个消息，需要明白的是当对方send一条信息的时候，无论底层怎样分段分片，TCP协议层会把构成整条消息的数据段排序完成后才呈现在内核缓冲区。
+
+例如基于tcp的套接字客户端往服务端上传文件，发送时文件内容是按照一段一段的字节流发送的，在接收方看了，根本不知道该文件的字节流从何处开始，在何处结束
+```
+
+> 所谓粘包问题主要还是因为接收方不知道消息之间的界限，不知道一次性提取多少字节的数据所造成的。
+
+- 此外，发送方引起的粘包是由TCP协议本身造成的
+
+  - TCP为提高传输效率，发送方往往要收集到足够多的数据后才发送一个TCP段。
+
+  - 若连续几次需要send的数据都很少，通常TCP会根据优化[算法](http://lib.csdn.net/base/datastructure)把这些数据合成一个TCP段后一次发送出去，这样接收方就收到了粘包数据。
+
+    - TCP（transport control protocol，传输控制协议）是面向连接的，面向流的，提供高可靠性服务。
+      - 收发两端（客户端和服务器端）都要有一一成对的socket
+      - 因此，发送端为了将多个发往接收端的包，更有效的发到对方，使用了**优化方法（Nagle算法）**，将多次间隔较小且数据量小的数据，合并成一个大的数据块
+      - 然后进行封包。这样，接收端，就难于分辨出来了，必须提供科学的拆包机制。 
+      - 即面向流的通信是无消息保护边界的。
+
+    - UDP（user datagram protocol，用户数据报协议）是无连接的，面向消息的，提供高效率服务。
+      - 不会使用块的合并优化算法，
+      - 由于UDP支持的是一对多的模式，所以接收端的skbuff(套接字缓冲区）采用了链式结构来记录每一个到达的UDP包
+      - 在每个UDP包中就有了消息头（消息来源地址，端口等信息）
+      - 这样，对于接收端来说，就容易进行区分处理了。 
+      - **即面向消息的通信是有消息保护边界的。**
+
+> **tcp是基于数据流的，于是收发的消息不能为空，这就需要在客户端和服务端都添加空消息的处理机制，防止程序卡住，而udp是基于数据报的，即便是你输入的是空内容（直接回车），那也不是空消息，udp协议会帮你封装上消息头，实验略**
+
+- udp的recvfrom是阻塞的，一个recvfrom(x)必须对唯一一个sendinto(y),收完了x个字节的数据就算完成
+  - 若是y>x数据就丢失，这意味着udp根本不会粘包，但是会丢数据，不可靠
+- tcp的协议数据不会丢，没有收完包，下次接收，会继续上次继续接收，己端总是在收到ack时才会清除缓冲区内容。
+  - 数据是可靠的，但是会粘包。
+
+### （2）为什么UDP协议不存在粘包问题
+
+#### （2.1）UDP演示
+
+- UDP客户端
+
+  ```python
+  # -*-coding: Utf-8 -*-
+  # @File : udp客户端 .py
+  # author: Chimengmeng
+  # blog_url : https://www.cnblogs.com/dream-ze/
+  # Time：2023/6/23
+  import socket
+  from socket import *
+  
+  # 创建client对象
+  client = socket(AF_INET, SOCK_DGRAM)
+  
+  client.connect(('127.0.0.1', 8080))
+  
+  client.send(b'world')
+  client.send(b'hello')
+  
+  msg_from_server = client.recvfrom(1024)
+  print(msg_from_server)
+  ```
+
+- UDP服务端
+
+  ```python
+  # -*-coding: Utf-8 -*-
+  # @File : udp服务端 .py
+  # author: Chimengmeng
+  # blog_url : https://www.cnblogs.com/dream-ze/
+  # Time：2023/6/23
+  
+  from socket import *
+  
+  server = socket(AF_INET, SOCK_DGRAM)
+  
+  server.bind(('127.0.0.1', 8080))
+  
+  res_from_client = server.recvfrom(1024)
+  
+  print(res_from_client)
+  # (b'world', ('127.0.0.1', 56852))
+  
+  res_from_client_two = server.recvfrom(1024)
+  
+  print(res_from_client_two)
+  # (b'hello', ('127.0.0.1', 61798))
+  
+  res_from_client_three = server.recvfrom(5)
+  
+  print(res_from_client_three)
+  # OSError: [WinError 10040] 一个在数据报套接字上发送的消息大于内部消息缓冲区或其他一些网络限制，或该用户用于接收数据报的缓冲区比数据报小。
+  # 无法接收到 数据以外的数据 报错
+  ```
+
+- 当我们启动udp服务端后，由udp客户端向服务端发送两条数据
+
+  - 但是在udp服务端只接收到了一条数据
+  - 这是因为 udp 是报式协议，传送数据过程中会将数据打包直接发走，不会对数据进行拼接操作（没有Nagle算法）
+
+####  （2.2）TCP演示
+
+- tcp客户端
+
+  ```python
+  # -*-coding: Utf-8 -*-
+  # @File : tcp客户端 .py
+  # author: Chimengmeng
+  # blog_url : https://www.cnblogs.com/dream-ze/
+  # Time：2023/6/23
+  
+  from socket import *
+  
+  client = socket(AF_INET, SOCK_STREAM)
+  
+  client.connect(('127.0.0.1', 8081))
+  
+  client.send(b'hello')
+  client.send(b'world')
+  
+  msg_from_server = client.recv(1024)
+  print(msg_from_server)
+  # b'return'
+  
+  client.close()
+  ```
+
+- tcp服务端
+
+  ```python
+  # -*-coding: Utf-8 -*-
+  # @File : tcp服务端 .py
+  # author: Chimengmeng
+  # blog_url : https://www.cnblogs.com/dream-ze/
+  # Time：2023/6/23
+  
+  from socket import *
+  
+  server = socket(AF_INET, SOCK_STREAM)
+  
+  server.bind(('127.0.0.1', 8081))
+  
+  server.listen(3)
+  
+  conn, client_addr = server.accept()
+  
+  msg_from_client = conn.recv(1024)
+  print(msg_from_client.decode('utf-8'))
+  # helloworld
+  
+  conn.send(b'return')
+  
+  conn.close()
+  ```
+
+- 从以上我们可以看到
+
+  - TCP协议传输过程中将我们的两次发送的数据拼接成了一个发送到服务端
+
+> 通过比较我们可知，udp协议虽然不存在粘包问题，但是，udp协议的安全性有待考量
+
+## 【三】粘包问题解决3.0
+
+> 利用 `struct` 模块将传输过去的数据的总长度 打包 + 到头部进行发送
+
+- 客户端
+
+```python
+# -*-coding: Utf-8 -*-
+# @File : 客户端 .py
+# author: Chimengmeng
+# blog_url : https://www.cnblogs.com/dream-ze/
+# Time：2023/6/22
+
+from socket import *
+
+# 解指定数据长度
+import struct
+
+# 创建  socket 对象
+client = socket(AF_INET, SOCK_STREAM)
+
+# 创建链接 IP 和 端口
+client.connect(('127.0.0.1', 8083))
+
+while True:
+    msg = input('enter msg :>>>').strip()
+
+    # 输入的内容不能为空
+    if len(msg) == 0:
+        continue
+
+    # 传输过程中的数据为二进制数据。对文本数据进行转码
+    msg = msg.encode('utf-8')
+    client.send(msg)
+
+    # 接收来自服务端返回的结果
+
+    # 解决粘包问题：解决办法
+    # （1） 先收到固定长度的头，将头部解析到数据的描述信息，拿到数据的总大小 recv_total_size
+    # 解析出接收到的总数据的长度
+    recv_total_size_msg = client.recv(4)
+    # 解包返回的是元祖。元祖第一个参数就是打包的数字
+    recv_total_size = struct.unpack('i', recv_total_size_msg)[0]
+
+    # （2） recv_size = 0 ，循环接收，每接收一次，recv_size += 接收的长度
+    # （3） 直到 recv_size = recv_total_size 表示接受信息完毕，结束循环
+    # 初始化数据长度
+    recv_size = 0
+    while recv_size < recv_total_size:
+        # 本次接收 最多能接收 1024 字节的数据
+        msg_from_server = client.recv(1024)
+        # 本次接收到的打印的数据长度
+        recv_size += len(msg_from_server)
+
+        # 对服务端返回的信息进行解码（Mac/Linux解码用utf-8，Windows用GBK）
+        msg_from_server = msg_from_server.decode('gbk')
+        print(msg_from_server, end='')
+
+    else:
+        print('命令结束')
+
+    client.close()
+```
+
+- 服务端
+
+```python
+# -*-coding: Utf-8 -*-
+# @File : 服务端 .py
+# author: Chimengmeng
+# blog_url : https://www.cnblogs.com/dream-ze/
+# Time：2023/6/22
+
+# client.connect(('127.0.0.1', 8880))
+# 客户端设置的 ip 和 port
+from socket import *
+
+# 执行命令模块
+import subprocess
+# 将数据打包成指定4个长度的数据
+import struct
+
+# 创建服务对象
+server = socket(AF_INET, SOCK_STREAM)
+
+# 建立链接桥梁
+server.bind(('127.0.0.1', 8083))
+
+# 指定半连接池大小
+server.listen(5)
+
+# 接收数据和发送数据
+while True:
+    # 从半连接池里面取出链接请求，建立双向链接，拿到连接对象
+    # 拿到 建成的链接对象 和 客户端的 ip port
+    conn, client_addr = server.accept()
+
+    while True:
+        # 检测可能会抛出的异常 并 对异常做处理
+        try:
+            # 基于 取出的链接对象 进行通信
+            cmd_from_client = conn.recv(1024)
+
+            # 不允许传过来的信息为空
+            if len(cmd_from_client) == 0:
+                break
+
+            # 执行客户端传过来的命令
+            # 接收执行命令的结果
+            msg_server = subprocess.Popen(cmd_from_client.decode('utf-8'),  # 对命令进行解码
+                                          shell=True,  # 执行shell命令
+                                          stdout=subprocess.PIPE,  # 管道一
+                                          stderr=subprocess.PIPE,  # 管道二
+                                          )
+
+            # 返回命令的结果  ---- 成功或失败  （Linux系统可以用utf-8解码，Windows系统需要用gbk解码）
+            true_msg = msg_server.stdout.read()  # 读取到执行成功的结果 ---- 二进制数据类型
+            false_msg = msg_server.stderr.read()  # 读取到执行失败的结果 ---- 二进制数据类型
+
+            # （1）：先发头部信息（固定长度的bytes二进制数据）：对数据信息的描述（包括数据的总长度）
+            total_size_from_server = len(true_msg) + len(false_msg)
+            # int类型  -----> 固定长度的 bytes
+            # 参数 i 表示是整型，具体解释参考文档
+            total_size_from_server_pack = struct.pack('i', total_size_from_server)
+            conn.send(total_size_from_server_pack)
+
+            # 反馈信息给 发送信息的客户端
+            conn.send(true_msg)
+            conn.send(false_msg)
+
+        except Exception as e:
+            break
+    conn.close()
+```
+
+- 客户端可以完美的接收到查出额定长度以外的数据
+
+  > 同时这也是 自定义协议的 简单操作
+
+## 【四】粘包问题最终版4.0
+
+> 通过json模式 ---- 模版修改参数直接套用
+
+- 客户端
+
+```python
+# -*-coding: Utf-8 -*-
+# @File : 客户端 .py
+# author: Chimengmeng
+# blog_url : https://www.cnblogs.com/dream-ze/
+# Time：2023/6/22
+import json
+from socket import *
+
+# 解指定数据长度
+import struct
+
+# 创建  socket 对象
+client = socket(AF_INET, SOCK_STREAM)
+
+# 创建链接 IP 和 端口
+client.connect(('127.0.0.1', 8085))
+
+while True:
+    msg = input('enter msg :>>>').strip()
+
+    # 输入的内容不能为空
+    if len(msg) == 0:
+        continue
+
+    # 传输过程中的数据为二进制数据。对文本数据进行转码
+    msg = msg.encode('utf-8')
+    client.send(msg)
+
+    # 接收来自服务端返回的结果
+
+    # （1.1） 先收四个字节的数据，从接收到的数据中解析出json格式的二进制数据的长度
+    json_data_size_unpack = client.recv(4)
+
+    # 解包返回的是元祖。元祖第一个参数就是打包的数字
+    json_data_size = struct.unpack('i', json_data_size_unpack)[0]
+
+    # （1.2） 对 服务端 返回的数据中指定长度进行截取 拿到 json 格式的二进制数据
+    json_data_bytes = client.recv(json_data_size)
+
+    # （1.3） 对指定数据进行json格式的解码并取出需要的信息
+    header_dict_str = json_data_bytes.decode('utf-8')
+    header_dict = json.loads(header_dict_str)
+
+    # （1.4） 取出字典中的信息总长度
+    recv_total_size = header_dict['total_size']
+
+    # （2） 接收真实的数据
+    # recv_size = 0 ，循环接收，每接收一次，recv_size += 接收的长度
+    # （3） 直到 recv_size = recv_total_size 表示接受信息完毕，结束循环
+    # 初始化数据长度
+    recv_size = 0
+    while recv_size < recv_total_size:
+        # 本次接收 最多能接收 1024 字节的数据
+        msg_from_server = client.recv(1024)
+        # 本次接收到的打印的数据长度
+        recv_size += len(msg_from_server)
+
+        # 对服务端返回的信息进行解码（Mac/Linux解码用utf-8，Windows用GBK）
+        msg_from_server = msg_from_server.decode('gbk')
+        print(msg_from_server, end='')
+
+    else:
+        print('命令结束')
+
+    client.close()
+```
+
+- 服务端
+
+```python
+# -*-coding: Utf-8 -*-
+# @File : 服务端 .py
+# author: Chimengmeng
+# blog_url : https://www.cnblogs.com/dream-ze/
+# Time：2023/6/22
+
+# client.connect(('127.0.0.1', 8880))
+# 客户端设置的 ip 和 port
+from socket import *
+
+# 执行命令模块
+import subprocess
+# 将数据打包成指定4个长度的数据
+import struct
+# 将头部信息转成json格式（通用信息格式）
+import json
+
+# 创建服务对象
+server = socket(AF_INET, SOCK_STREAM)
+
+# 建立链接桥梁
+server.bind(('127.0.0.1', 8085))
+
+# 指定半连接池大小
+server.listen(5)
+
+# 接收数据和发送数据
+while True:
+    # 从半连接池里面取出链接请求，建立双向链接，拿到连接对象
+    # 拿到 建成的链接对象 和 客户端的 ip port
+    conn, client_addr = server.accept()
+
+    while True:
+        # 检测可能会抛出的异常 并 对异常做处理
+        try:
+            # 基于 取出的链接对象 进行通信
+            cmd_from_client = conn.recv(1024)
+
+            # 不允许传过来的信息为空
+            if len(cmd_from_client) == 0:
+                break
+
+            # 执行客户端传过来的命令
+            # 接收执行命令的结果
+            msg_server = subprocess.Popen(cmd_from_client.decode('utf-8'),  # 对命令进行解码
+                                          shell=True,  # 执行shell命令
+                                          stdout=subprocess.PIPE,  # 管道一
+                                          stderr=subprocess.PIPE,  # 管道二
+                                          )
+
+            # 返回命令的结果  ---- 成功或失败  （Linux系统可以用utf-8解码，Windows系统需要用gbk解码）
+            true_msg = msg_server.stdout.read()  # 读取到执行成功的结果 ---- 二进制数据类型
+            false_msg = msg_server.stderr.read()  # 读取到执行失败的结果 ---- 二进制数据类型
+
+            # （1）：先发头部信息（固定长度的bytes二进制数据）：对数据信息的描述（包括数据的总长度）
+            total_size_from_server = len(true_msg) + len(false_msg)
+
+            # （2）自定义头部信息
+            headers_dict = {
+                'file_name': 'a.txt',
+                'total_size': total_size_from_server,
+                'md5': 'md5'
+            }
+
+            # 打包头部信息 - 将字典转成 json 格式数据类型
+            json_data_str = json.dumps(headers_dict)
+            # 将 json 格式数据转成二进制数据传输
+            json_data_bytes = json_data_str.encode('utf-8')
+
+            # int类型  -----> 将json格式的二进制数据打成固定长度的 bytes
+            # 参数 i 表示是整型，具体解释参考文档
+            json_data_size_pack = struct.pack('i', len(json_data_bytes))
+            conn.send(json_data_size_pack)
+
+            # 发送打包好的头信息
+            conn.send(json_data_bytes)
+
+            # 反馈信息给 发送信息的客户端
+            conn.send(true_msg)
+            conn.send(false_msg)
+
+        except Exception as e:
+            break
+    conn.close()
+```
+
