@@ -111,7 +111,7 @@ export const sidebarLayoutConfig: SidebarLayoutConfig = {
 			specificConfig: {
 				dynamic: {
 					// 显示的最新动态数量
-					limit: 2,
+					limit: 3,
 				},
 			},
 		},
