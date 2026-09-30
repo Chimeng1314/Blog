@@ -140,8 +140,8 @@ export const fontConfig: FontSelectionConfig = {
 	enable: true,
 	// 当前选择的字体 CSS 变量名（对应上方 fonts 中的 cssVariable）
 	// 使用 "system" 表示系统字体（不加载任何自定义字体）
-	// 与参考站一致：Zen Maru Gothic 为主字体；未安装的“萝莉体 第二版”作为本机回退字体。
-	selected: ["--font-zen-maru-gothic", "--font-loli"],
+	// Zen Maru Gothic 为主字体，JetBrains Mono 作为回退字体。
+	selected: ["--font-zen-maru-gothic", "--font-jetbrains-mono"],
 
 	// 各区域独立字体设置（填写上方 fonts 中的 cssVariable，留空则使用全局 selected 字体）
 	// 例如：bannerTitleFont: "--font-inter", 表示主页横幅主标题使用 Inter 字体
