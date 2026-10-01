@@ -7,6 +7,7 @@
   },
   "packageManager": "pnpm@11.22.0",
   "scripts": {
+    "sync:calendar-data": "node scripts/sync-calendar-data.mjs",
     "dev": "astro dev",
     "start": "astro dev",
     "check": "astro check",

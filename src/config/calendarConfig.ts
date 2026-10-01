@@ -6,13 +6,9 @@ import type { CalendarConfig } from "@/types/calendarConfig";
 export const calendarConfig: CalendarConfig = {
 	title: "站点日历",
 	description: "节日、纪念日、计划与文章发布记录",
-	holidayApi: {
-		enable: true,
-		// 使用 {year} 占位符；Nager.Date 无需 API Key，避免 timor.tech 的 429 限流。
-		url: "https://date.nager.at/api/v3/PublicHolidays/{year}/CN",
-		fallbackOnError: true,
-		years: [2026, 2027],
-	},
+	// 2019–2026 年的法定“休 / 班”已固化在 src/data/calendar/statutory-holidays.ts。
+	// 2027 年尚未公布调休安排，因此仅显示节日本身，不推测“休 / 班”。
+	years: [2019, 2020, 2021, 2022, 2023, 2024, 2025, 2026, 2027],
 	builtinHolidays: [
 		{
 			name: "元旦",
@@ -43,6 +39,21 @@ export const calendarConfig: CalendarConfig = {
 			name: "国庆节",
 			date: { type: "solar", month: 10, day: 1 },
 			icon: "material-symbols:flag",
+		},
+		{
+			name: "万圣节",
+			date: { type: "solar", month: 10, day: 31 },
+			icon: "material-symbols:celebration",
+		},
+		{
+			name: "平安夜",
+			date: { type: "solar", month: 12, day: 24 },
+			icon: "material-symbols:nightlight",
+		},
+		{
+			name: "圣诞节",
+			date: { type: "solar", month: 12, day: 25 },
+			icon: "material-symbols:celebration",
 		},
 	],
 	// https://icones.js.org/collection/material-symbols

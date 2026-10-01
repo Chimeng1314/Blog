@@ -27,12 +27,8 @@ export type CalendarScheduleConfig = {
 export type CalendarConfig = {
 	title?: string;
 	description?: string;
-	holidayApi?: {
-		enable: boolean;
-		url: string;
-		fallbackOnError: boolean;
-		years: number[];
-	};
+	/** 月历允许浏览的年份；法定“休 / 班”仅以本地已发布快照为准。 */
+	years?: number[];
 	builtinHolidays: CalendarEventConfig[];
 	birthdays: CalendarEventConfig[];
 	schedules: CalendarScheduleConfig[];

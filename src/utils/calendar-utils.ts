@@ -1,8 +1,14 @@
 import { Lunar } from "lunar-typescript";
 import { calendarConfig } from "@/config/calendarConfig";
+import { statutoryHolidayYears } from "@/data/calendar/statutory-holidays";
 import { getSortedPosts } from "@/utils/content-utils";
 
-export type CalendarEventType = "holiday" | "birthday" | "schedule" | "post";
+export type CalendarEventType =
+	| "holiday"
+	| "workday"
+	| "birthday"
+	| "schedule"
+	| "post";
 
 export type CalendarEvent = {
 	id: string;
@@ -12,6 +18,7 @@ export type CalendarEvent = {
 	icon: string;
 	note?: string;
 	href?: string;
+	statutoryStatus?: "off" | "work";
 };
 
 export type CalendarDay = {
@@ -22,6 +29,7 @@ export type CalendarDay = {
 
 const eventIcons: Record<CalendarEventType, string> = {
 	holiday: "material-symbols:festival",
+	workday: "material-symbols:work",
 	birthday: "material-symbols:cake",
 	schedule: "material-symbols:event",
 	post: "material-symbols:article",
@@ -65,61 +73,32 @@ function dateRange(years: number[]): Date[] {
 	return dates;
 }
 
-async function fetchPublicHolidays(year: number): Promise<CalendarEvent[]> {
-	const api = calendarConfig.holidayApi;
-	if (!api?.enable) return [];
-	const url = api.url.includes("{year}")
-		? api.url.replace("{year}", String(year))
-		: `${api.url}${year}`;
-	const response = await fetch(url, {
-		signal: AbortSignal.timeout(8_000),
-	});
-	if (!response.ok) throw new Error(`Holiday API returned ${response.status}`);
-	const payload = (await response.json()) as
-		| {
-				holiday?: Record<string, { holiday?: boolean; name?: string }>;
-		  }
-		| Array<{ date?: string; localName?: string; name?: string }>;
-
-	// Nager.Date：[{ date: "2027-10-01", localName: "国庆节", ... }]。
-	// 只记录节日当天；放假区间与调休仍由内置节日作为基础降级数据。
-	if (Array.isArray(payload)) {
-		return payload
-			.filter((holiday) => /^\d{4}-\d{2}-\d{2}$/.test(holiday.date ?? ""))
-			.map((holiday) => ({
-				id: `api-${holiday.date}`,
-				date: holiday.date as string,
-				name: holiday.localName || holiday.name || "法定节假日",
-				type: "holiday" as const,
-				icon: eventIcons.holiday,
-			}));
-	}
-
-	// 保留 timor.tech 格式兼容，方便日后按需切换其他接口。
-	return Object.entries(payload.holiday ?? {})
-		.filter(([, value]) => value.holiday && value.name)
-		.map(([date, value]) => {
-			// timor.tech 的键是 MM-DD；统一补成年份，供月历按 YYYY-MM-DD 查询。
-			const dateKey = /^\d{2}-\d{2}$/.test(date) ? `${year}-${date}` : date;
-			return {
-				id: `api-${dateKey}`,
-				date: dateKey,
-				name: value.name ?? "法定节假日",
-				type: "holiday" as const,
-				icon: eventIcons.holiday,
-			};
-		});
-}
-
-/** 在构建期汇总所有日历事件；接口故障不会阻断构建。 */
+/** 在构建期汇总所有本地日历事件；不依赖第三方节假日接口。 */
 export async function getCalendarDays(): Promise<CalendarDay[]> {
-	const configuredYears = calendarConfig.holidayApi?.years ?? [];
+	const configuredYears = calendarConfig.years ?? [];
 	const thisYear = new Date().getFullYear();
 	const years = [
 		...new Set([...configuredYears, thisYear, thisYear + 1]),
 	].sort();
 	const dates = dateRange(years);
 	const events: CalendarEvent[] = [];
+
+	for (const snapshot of Object.values(statutoryHolidayYears)) {
+		for (const day of snapshot.days) {
+			if (!/^\d{4}-\d{2}-\d{2}$/.test(day.date)) continue;
+			const year = Number(day.date.slice(0, 4));
+			if (!years.includes(year)) continue;
+			events.push({
+				id: `statutory-${day.date}-${day.isOffDay ? "off" : "work"}`,
+				date: day.date,
+				name: day.isOffDay ? day.name : `${day.name}调休上班`,
+				type: day.isOffDay ? "holiday" : "workday",
+				icon: day.isOffDay ? eventIcons.holiday : eventIcons.workday,
+				note: day.isOffDay ? "法定放假" : "调休上班",
+				statutoryStatus: day.isOffDay ? "off" : "work",
+			});
+		}
+	}
 
 	for (const date of dates) {
 		const dateKey = toDateKey(date);
@@ -173,20 +152,6 @@ export async function getCalendarDays(): Promise<CalendarDay[]> {
 					icon: schedule.icon ?? eventIcons.schedule,
 					note: schedule.note,
 				});
-		}
-	}
-
-	if (calendarConfig.holidayApi?.enable) {
-		for (const year of years) {
-			try {
-				events.push(...(await fetchPublicHolidays(year)));
-			} catch (error) {
-				if (!calendarConfig.holidayApi.fallbackOnError) throw error;
-				console.warn(
-					`[calendar] ${year} 年法定节假日获取失败，已使用内置节日。`,
-					error,
-				);
-			}
 		}
 	}
 
