@@ -162,6 +162,14 @@ export const sidebarLayoutConfig: SidebarLayoutConfig = {
 			},
 		},
 		{
+			// 组件类型：时间进度卡片，整卡点击可进入站点日历
+			type: "yearProgress",
+			enable: true,
+			showTitle: false,
+			position: "sticky",
+			showOnPostPage: false,
+		},
+		{
 			// 组件类型：侧边栏目录组件（只在文章详情页显示）
 			type: "sidebarToc",
 			// 是否启用该组件

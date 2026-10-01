@@ -1,0 +1,205 @@
+---
+import { calendarConfig } from "@/config/calendarConfig";
+import { url } from "@/utils/url-utils";
+
+interface Props {
+	class?: string;
+	style?: string;
+}
+
+const { class: className, style } = Astro.props;
+const holidays = calendarConfig.builtinHolidays
+	.filter((holiday) => holiday.date.type === "solar")
+	.map((holiday) => ({ name: holiday.name, ...holiday.date }));
+---
+
+<a
+	href={url("/calendar/")}
+	class:list={[
+		"year-progress-widget-shell",
+		"card-base block pb-4 no-underline text-inherit outline-none",
+		className,
+	]}
+	style={style}
+	aria-label="时间进度，进入站点日历"
+>
+	<div id="year-progress-widget" class="year-progress-widget px-4 pt-4 text-sm">
+		<div class="year-progress-row">
+			<strong class="year-progress-percent">--%</strong>
+			<div class="year-progress-content">
+				<span class="year-progress-label">本年还剩 -- 天</span>
+				<span class="year-progress-bar" aria-hidden="true"><i class="year-progress-fill"></i></span>
+			</div>
+		</div>
+		<div class="year-progress-row">
+			<strong class="month-progress-percent">--%</strong>
+			<div class="year-progress-content">
+				<span class="month-progress-label">本月还剩 -- 天</span>
+				<span class="month-progress-bar year-progress-bar" aria-hidden="true"><i class="year-progress-fill"></i></span>
+			</div>
+		</div>
+		<div class="year-progress-row">
+			<strong class="week-progress-percent">--%</strong>
+			<div class="year-progress-content">
+				<span class="week-progress-label">本周还剩 -- 天</span>
+				<span class="week-progress-bar year-progress-bar" aria-hidden="true"><i class="year-progress-fill"></i></span>
+			</div>
+		</div>
+		<div class="year-progress-holiday">
+			<span class="year-progress-holiday-label">距离最近节日</span>
+			<strong class="year-progress-holiday-days">--</strong>
+			<span class="year-progress-holiday-date">----</span>
+		</div>
+	</div>
+</a>
+
+<script is:inline data-swup-ignore-script define:vars={{ holidays }}>
+	function setText(root, selector, value) {
+		const element = root.querySelector(selector);
+		if (element) element.textContent = value;
+	}
+
+	function setProgress(root, selector, value) {
+		const fill = root.querySelector(`${selector} .year-progress-fill`);
+		if (fill) fill.style.width = `${Math.min(100, Math.max(0, value))}%`;
+	}
+
+	function daysInYear(year) {
+		return new Date(year, 1, 29).getMonth() === 1 ? 366 : 365;
+	}
+
+	function getNearestSolarHoliday(today) {
+		return holidays
+			.map((holiday) => {
+				let date = new Date(today.getFullYear(), holiday.month - 1, holiday.day);
+				if (date < today)
+					date = new Date(
+						today.getFullYear() + 1,
+						holiday.month - 1,
+						holiday.day,
+					);
+				return { ...holiday, date };
+			})
+			.sort((a, b) => a.date - b.date)[0];
+	}
+
+	function renderYearProgress() {
+		document.querySelectorAll(".year-progress-widget").forEach((root) => {
+			const today = new Date();
+			const midnight = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+			const startOfYear = new Date(today.getFullYear(), 0, 1);
+			const dayOfYear = Math.floor((midnight - startOfYear) / 86400000) + 1;
+			const yearTotal = daysInYear(today.getFullYear());
+			const yearPercent = (dayOfYear / yearTotal) * 100;
+			const monthTotal = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
+			const monthPercent = (today.getDate() / monthTotal) * 100;
+			const weekday = (today.getDay() + 6) % 7 + 1;
+			const weekPercent = (weekday / 7) * 100;
+
+			setText(root, ".year-progress-percent", `${yearPercent.toFixed(1)}%`);
+			setText(root, ".year-progress-label", `本年还剩 ${yearTotal - dayOfYear} 天`);
+			setProgress(root, ".year-progress-bar", yearPercent);
+			setText(root, ".month-progress-percent", `${monthPercent.toFixed(1)}%`);
+			setText(root, ".month-progress-label", `本月还剩 ${monthTotal - today.getDate()} 天`);
+			setProgress(root, ".month-progress-bar", monthPercent);
+			setText(root, ".week-progress-percent", `${weekPercent.toFixed(1)}%`);
+			setText(root, ".week-progress-label", `本周还剩 ${7 - weekday} 天`);
+			setProgress(root, ".week-progress-bar", weekPercent);
+
+			const holiday = getNearestSolarHoliday(midnight);
+			if (!holiday) return;
+			const days = Math.round((holiday.date - midnight) / 86400000);
+			setText(
+				root,
+				".year-progress-holiday-label",
+				days === 0 ? `${holiday.name}就在今天` : `距离${holiday.name}`,
+			);
+			setText(root, ".year-progress-holiday-days", days === 0 ? "今天" : `${days} 天`);
+			setText(
+				root,
+				".year-progress-holiday-date",
+				[holiday.date.getFullYear(), String(holiday.date.getMonth() + 1).padStart(2, "0"), String(holiday.date.getDate()).padStart(2, "0")].join("-"),
+			);
+		});
+	}
+
+	renderYearProgress();
+	document.addEventListener("swup:page:view", renderYearProgress);
+</script>
+
+<style>
+	.year-progress-widget-shell {
+		display: block;
+		border-radius: var(--radius-large);
+	}
+
+	.year-progress-widget-shell:hover,
+	.year-progress-widget-shell:focus-visible {
+		transform: translateY(-3px);
+		box-shadow: 0 14px 28px color-mix(in srgb, var(--primary) 16%, transparent);
+	}
+
+	.year-progress-widget-shell {
+		border: 1px solid color-mix(in srgb, var(--line-divider) 86%, transparent);
+		box-shadow: 0 6px 22px rgb(15 23 42 / 7%);
+		transition: transform 0.2s ease, box-shadow 0.2s ease;
+	}
+
+	:global(.dark) .year-progress-widget-shell {
+		box-shadow: 0 8px 26px rgb(0 0 0 / 18%);
+	}
+
+	.year-progress-widget {
+		display: grid;
+		gap: 1.15rem;
+	}
+
+	.year-progress-row {
+		display: flex;
+		align-items: center;
+		gap: 0.8rem;
+	}
+
+	.year-progress-row strong {
+		width: 3.9rem;
+		flex: none;
+		color: var(--primary);
+		font-size: 0.95rem;
+	}
+
+	.year-progress-content {
+		display: grid;
+		gap: 0.45rem;
+		min-width: 0;
+		flex: 1;
+	}
+
+	.year-progress-label { color: color-mix(in srgb, currentColor 68%, transparent); }
+	.year-progress-bar {
+		display: block;
+		width: 100%;
+		height: 0.6rem;
+		overflow: hidden;
+		border-radius: 999px;
+		background: color-mix(in srgb, currentColor 16%, transparent);
+	}
+	.year-progress-fill {
+		display: block;
+		height: 100%;
+		width: 0;
+		border-radius: inherit;
+		background: linear-gradient(90deg, color-mix(in srgb, var(--primary) 76%, white), var(--primary));
+		box-shadow: 0 0 10px color-mix(in srgb, var(--primary) 35%, transparent);
+		transition: width 0.7s cubic-bezier(0.2, 0.8, 0.2, 1);
+	}
+	.year-progress-holiday {
+		border-top: 1px solid var(--line-divider);
+		padding-top: 1.1rem;
+		text-align: center;
+		display: grid;
+		gap: 0.15rem;
+	}
+	.year-progress-holiday-label { color: color-mix(in srgb, currentColor 65%, transparent); }
+	.year-progress-holiday-days { color: var(--primary); font-size: 2.5rem; line-height: 1; letter-spacing: -0.08em; }
+	.year-progress-holiday-date { color: color-mix(in srgb, currentColor 50%, transparent); font-size: 0.75rem; }
+</style>

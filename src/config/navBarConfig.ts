@@ -104,6 +104,9 @@ const getDynamicNavBarConfig = (): NavBarConfig => {
 
             // MyAnimeList
             // LinkPresets.MAL,
+
+            // 站点日历
+            LinkPresets.Calendar,
         ],
     });
 
@@ -270,6 +273,12 @@ export const LinkPresets: Record<string, NavBarLink> = {
         url: "/myanimelist/",
         icon: "material-symbols:menu-book",
         pageKey: "mal",
+    },
+    Calendar: {
+        name: "站点日历",
+        url: "/calendar/",
+        icon: "material-symbols:calendar-month",
+        pageKey: "calendar",
     },
     Sponsor: {
         name: "打赏",

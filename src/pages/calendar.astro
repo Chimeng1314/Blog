@@ -1,0 +1,201 @@
+---
+import { Icon } from "astro-icon/components";
+import materialSymbols from "@iconify-json/material-symbols/icons.json";
+import { getIconData, iconToSVG } from "@iconify/utils";
+import Navbar from "@/components/layout/Navbar.astro";
+import { calendarConfig, siteConfig } from "@/config";
+import Layout from "@/layouts/Layout.astro";
+import "@/styles/pages/calendar.css";
+import { getCalendarDays } from "@/utils/calendar-utils";
+
+if (!siteConfig.pages.calendar) {
+	return Astro.redirect("/404/");
+}
+
+const title = calendarConfig.title || "站点日历";
+const description =
+	calendarConfig.description || "节日、纪念日、计划与文章发布记录";
+const calendarDays = await getCalendarDays();
+const overview = calendarConfig.overview ?? { futureDays: 30, maxItems: 6 };
+
+// 月历事件由客户端切换月份后生成。这里仅序列化实际用到的 SVG，既能支持任意
+// Material Symbols 图标名，也不会把整套图标库发送到浏览器。
+const calendarIconSvgs = Object.fromEntries(
+	[
+		...new Set(
+			calendarDays.flatMap((day) => day.events.map((event) => event.icon)),
+		),
+	]
+		.filter((icon) => icon.startsWith("material-symbols:"))
+		.flatMap((icon) => {
+			const iconData = getIconData(
+				materialSymbols,
+				icon.slice("material-symbols:".length),
+			);
+			if (!iconData) return [];
+			const rendered = iconToSVG(iconData);
+			return [
+				[
+					icon,
+					{
+						body: rendered.body,
+						viewBox: rendered.attributes.viewBox ?? "0 0 24 24",
+					},
+				],
+			];
+		}),
+);
+---
+
+<Layout title={title} description={description}>
+	<Navbar />
+	<main class="calendar-page max-w-(--page-width) mx-auto px-4 pt-6 pb-12 md:pt-10">
+		<header class="card-base calendar-hero px-6 py-7 mb-5 md:px-9 md:py-8">
+			<div class="flex items-start gap-4">
+				<div class="shrink-0 rounded-2xl p-3 bg-(--btn-regular-bg) text-(--primary)">
+					<Icon name="material-symbols:calendar-month" class="text-3xl" />
+				</div>
+				<div>
+					<h1 class="text-2xl font-bold text-90 md:text-3xl">{title}</h1>
+					<p class="mt-2 text-50">{description}</p>
+				</div>
+			</div>
+		</header>
+
+		<div class="calendar-layout grid gap-5 xl:grid-cols-[minmax(15rem,.8fr)_minmax(30rem,1.8fr)_minmax(16rem,.9fr)]">
+			<section class="card-base calendar-panel calendar-upcoming-panel p-5" aria-labelledby="calendar-upcoming-title">
+				<div class="flex items-center gap-2 mb-4">
+					<Icon name="material-symbols:upcoming-outline" class="text-xl text-(--primary)" />
+					<h2 id="calendar-upcoming-title" class="font-bold text-lg">近期事件</h2>
+				</div>
+				<div id="calendar-upcoming" class="space-y-3"></div>
+			</section>
+
+			<section class="card-base calendar-panel calendar-main-panel p-4 md:p-6" aria-label="月历">
+				<div class="calendar-toolbar flex items-center justify-between gap-3 mb-5">
+					<button id="calendar-prev" type="button" class="btn-plain rounded-lg w-10 h-10" aria-label="上个月"><Icon name="fa7-solid:chevron-left" /></button>
+					<button id="calendar-month-title" type="button" class="btn-plain px-3 py-2 rounded-lg font-bold text-lg" aria-label="回到本月"></button>
+					<div class="flex items-center gap-1">
+						<button id="calendar-today" type="button" class="calendar-today-btn" aria-label="回到今日"><Icon name="material-symbols:today-outline" /> <span>今日</span></button>
+						<button id="calendar-next" type="button" class="btn-plain rounded-lg w-10 h-10" aria-label="下个月"><Icon name="fa7-solid:chevron-right" /></button>
+					</div>
+				</div>
+				<div class="calendar-grid grid gap-px rounded-xl overflow-hidden bg-(--line-divider)" role="grid" aria-label="日历">
+					{["日", "一", "二", "三", "四", "五", "六"].map((day) => <div class="bg-(--card-bg) py-2 text-center text-xs text-50 font-medium">{day}</div>)}
+				</div>
+				<div id="calendar-grid" class="calendar-grid grid gap-px rounded-b-xl overflow-hidden bg-(--line-divider)"></div>
+				<div class="mt-5 flex flex-wrap gap-x-4 gap-y-2 text-xs text-50" aria-label="事件图例">
+					{[["holiday", "节日"], ["birthday", "生日 / 纪念日"], ["schedule", "计划"], ["post", "文章"]].map(([type, label]) => <span class="inline-flex items-center gap-1.5"><i class="calendar-event-dot" data-type={type}></i>{label}</span>)}
+				</div>
+			</section>
+
+			<section class="card-base calendar-panel calendar-detail-panel p-5" aria-labelledby="calendar-detail-title">
+				<div class="flex items-center gap-2 mb-4">
+					<Icon name="material-symbols:event-note-outline" class="text-xl text-(--primary)" />
+					<h2 id="calendar-detail-title" class="font-bold text-lg">当日事件</h2>
+				</div>
+				<div id="calendar-detail" class="calendar-detail-list text-sm"></div>
+			</section>
+		</div>
+	</main>
+
+	<script is:inline define:vars={{ calendarDays, calendarIconSvgs, overview }}>
+		const dayMap = new Map(calendarDays.map((day) => [day.date, day]));
+		const dateFormat = new Intl.DateTimeFormat("zh-CN", { year: "numeric", month: "long", day: "numeric", weekday: "long" });
+		const iconMap = {
+			"material-symbols:festival": "🎉", "material-symbols:cake": "🎂", "material-symbols:event": "📌", "material-symbols:article": "📝",
+			"material-symbols:celebration": "🎊", "material-symbols:flag": "🚩", "material-symbols:rocket-launch": "🚀", "material-symbols:notifications": "🔔",
+		};
+		let shownDate = new Date();
+		shownDate = new Date(shownDate.getFullYear(), shownDate.getMonth(), 1, 12);
+		let selectedDate = toKey(new Date());
+
+		function toKey(date) { return [date.getFullYear(), String(date.getMonth() + 1).padStart(2, "0"), String(date.getDate()).padStart(2, "0")].join("-"); }
+		function fromKey(key) { return new Date(`${key}T12:00:00`); }
+		function escapeHtml(value) { const node = document.createElement("span"); node.textContent = String(value); return node.innerHTML; }
+		function eventIcon(event) {
+			const icon = calendarIconSvgs[event.icon];
+			return icon ? `<svg class="calendar-config-icon" viewBox="${icon.viewBox}" aria-hidden="true">${icon.body}</svg>` : iconMap[event.icon] || iconMap[`material-symbols:${event.type}`] || "•";
+		}
+		function uniqueEvents(events) {
+			const seen = new Set();
+			return events.filter((event) => {
+				const key = `${event.type}:${event.name}`;
+				if (seen.has(key)) return false;
+				seen.add(key);
+				return true;
+			});
+		}
+		function eventHtml(event) {
+			const content = `<span class="calendar-event-icon" data-type="${event.type}" aria-hidden="true">${eventIcon(event)}</span><span class="min-w-0 flex-1"><span class="block font-medium truncate">${escapeHtml(event.name)}</span>${event.note ? `<span class="block mt-0.5 text-xs text-50">${escapeHtml(event.note)}</span>` : ""}<span class="calendar-event-kind" data-type="${event.type}">${event.type === "holiday" ? "节日" : event.type === "birthday" ? "纪念日" : event.type === "schedule" ? "计划" : "文章"}</span></span>`;
+			return event.href ? `<a href="${escapeHtml(event.href)}" class="calendar-detail-item">${content}</a>` : `<div class="calendar-detail-item">${content}</div>`;
+		}
+		function countdownText(name, date) {
+			const remaining = new Date(`${date}T00:00:00`).getTime() - Date.now();
+			if (remaining <= 0) return `${name}就在今天`;
+			const minutes = Math.floor(remaining / 60000);
+			const days = Math.floor(minutes / 1440);
+			const hours = Math.floor((minutes % 1440) / 60);
+			const restMinutes = minutes % 60;
+			return `距离 ${name} 还有：${days ? `${days} 天 ` : ""}${hours} 时 ${restMinutes} 分`;
+		}
+		function renderDetail() {
+			const target = document.getElementById("calendar-detail");
+			const day = dayMap.get(selectedDate);
+			const label = document.querySelector("#calendar-detail-title");
+			if (label) label.textContent = `${dateFormat.format(fromKey(selectedDate))} ${day?.lunar ? `· 农历${day.lunar}` : ""}`;
+			target.innerHTML = day?.events?.length ? uniqueEvents(day.events).map(eventHtml).join("") : '<div class="calendar-empty"><span>○</span><p>当天没有事件</p></div>';
+		}
+		function renderUpcoming() {
+			const target = document.getElementById("calendar-upcoming");
+			const today = toKey(new Date());
+			const future = calendarDays
+				// 左栏按类型展示「下一次」事件，不能用 30 天窗口截掉跨年的生日/纪念日。
+				.filter((day) => day.date >= today)
+				.flatMap((day) => day.events.map((event) => ({ ...event, lunar: day.lunar })));
+			const monthKey = today.slice(0, 7);
+			// 左栏是固定三块：节日只取本月最近一条，不能让法定假期的多日记录填满区域。
+			const holiday = uniqueEvents(future.filter((item) => item.type === "holiday" && item.date.startsWith(monthKey)))[0];
+			const anniversaries = uniqueEvents(future.filter((item) => item.type === "birthday")).slice(0, overview.maxItems || 6);
+			const schedules = uniqueEvents(future.filter((item) => item.type === "schedule")).slice(0, overview.maxItems || 6);
+			function cards(events, type) {
+				return events.map((event) => `<button type="button" data-date="${event.date}" class="calendar-upcoming-card"><span class="calendar-event-icon" data-type="${event.type}">${eventIcon(event)}</span><span class="min-w-0"><small class="calendar-upcoming-kind">${type}</small><strong>${escapeHtml(event.name)}</strong><small class="calendar-upcoming-countdown" data-countdown-date="${event.date}" data-countdown-name="${escapeHtml(event.name)}">${countdownText(event.name, event.date)}</small></span></button>`).join("");
+			}
+			const section = (type, label, events, kind, empty) => `<section class="calendar-upcoming-item" data-type="${type}"><div class="calendar-upcoming-label">${label}</div><div class="calendar-upcoming-cards">${events.length ? cards(events, kind) : `<p class="calendar-upcoming-empty">${empty}</p>`}</div></section>`;
+			target.innerHTML = [
+				section("holiday", "最近的节日", holiday ? [holiday] : [], "节日", "本月暂无节日"),
+				section("birthday", "最近的纪念日", anniversaries, "纪念日", "暂未配置纪念日"),
+				section("schedule", "最近的安排", schedules, "安排", "这一天没有日程"),
+			].join("");
+			target.querySelectorAll("[data-date]").forEach((button) => button.addEventListener("click", () => { selectedDate = button.dataset.date; shownDate = new Date(`${selectedDate}T12:00:00`); shownDate.setDate(1); renderCalendar(); renderDetail(); }));
+			const updateCountdowns = () => target.querySelectorAll("[data-countdown-date]").forEach((node) => { node.textContent = countdownText(node.dataset.countdownName, node.dataset.countdownDate); });
+			window.setInterval(updateCountdowns, 60_000);
+		}
+		function renderCalendar() {
+			const grid = document.getElementById("calendar-grid");
+			const title = document.getElementById("calendar-month-title");
+			const year = shownDate.getFullYear(); const month = shownDate.getMonth();
+			title.textContent = `${year} 年 ${month + 1} 月`;
+			const firstWeekday = new Date(year, month, 1).getDay();
+			const dayCount = new Date(year, month + 1, 0).getDate();
+			const previousCount = new Date(year, month, 0).getDate();
+			const cells = Array.from({ length: Math.ceil((firstWeekday + dayCount) / 7) * 7 }, (_, index) => {
+				const offset = index - firstWeekday + 1;
+				const date = new Date(year, month, offset, 12); const key = toKey(date); const item = dayMap.get(key);
+				const current = date.getMonth() === month; const today = key === toKey(new Date());
+				const events = uniqueEvents(item?.events || []);
+				const previews = events.slice(0, 2).map((event) => `<span class="calendar-day-event" data-type="${event.type}" title="${escapeHtml(event.name)}">${escapeHtml(event.name)}</span>`).join("");
+				const extra = events.length > 2 ? `<span class="calendar-day-more">+${events.length - 2}</span>` : "";
+				return `<button type="button" data-date="${key}" data-current="${current}" data-selected="${key === selectedDate}" data-today="${today}" class="calendar-day bg-(--card-bg) p-2 text-left"><span class="calendar-day-head"><span class="calendar-day-number">${date.getDate()}</span>${item?.lunar ? `<span class="calendar-lunar">${item.lunar}</span>` : ""}</span><span class="calendar-day-events">${previews}${extra}</span></button>`;
+			});
+			grid.innerHTML = cells.join("");
+			grid.querySelectorAll("[data-date]").forEach((button) => button.addEventListener("click", () => { selectedDate = button.dataset.date; renderCalendar(); renderDetail(); }));
+		}
+		document.getElementById("calendar-prev").addEventListener("click", () => { shownDate = new Date(shownDate.getFullYear(), shownDate.getMonth() - 1, 1, 12); renderCalendar(); });
+		document.getElementById("calendar-next").addEventListener("click", () => { shownDate = new Date(shownDate.getFullYear(), shownDate.getMonth() + 1, 1, 12); renderCalendar(); });
+		function returnToToday() { shownDate = new Date(); shownDate = new Date(shownDate.getFullYear(), shownDate.getMonth(), 1, 12); selectedDate = toKey(new Date()); renderCalendar(); renderDetail(); }
+		document.getElementById("calendar-month-title").addEventListener("click", returnToToday);
+		document.getElementById("calendar-today").addEventListener("click", returnToToday);
+		renderUpcoming(); renderCalendar(); renderDetail();
+	</script>
+</Layout>

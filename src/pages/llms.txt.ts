@@ -46,6 +46,11 @@ const KEY_PAGES: KeyPage[] = [
 		pageKey: "projects",
 	},
 	{
+		labelKey: I18nKey.calendar,
+		path: "/calendar/",
+		pageKey: "calendar",
+	},
+	{
 		labelKey: I18nKey.gallery,
 		path: "/gallery/",
 		descKey: I18nKey.galleryDescription,
