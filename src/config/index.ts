@@ -18,6 +18,12 @@ export const navbarMode: NavbarMode = resolveNavbarMode(siteConfig.navbar);
 
 // 类型导出
 export type {
+	CalendarConfig,
+	CalendarDate,
+	CalendarEventConfig,
+	CalendarScheduleConfig,
+} from "../types/calendarConfig";
+export type {
 	AdConfig,
 	AnalyticsConfig,
 	AnnouncementConfig,
@@ -62,6 +68,7 @@ export { backgroundWallpaper } from "./backgroundWallpaper"; // 背景壁纸配�
 export { booknavConfig, booknavPageConfig } from "./booknavConfig"; // 书签导航配置
 // 功能配置
 export { commentConfig } from "./commentConfig"; // 评论系统配置
+export { calendarConfig } from "./calendarConfig"; // 站点日历配置
 export { coverImageConfig } from "./coverImageConfig"; // 封面图配置
 export { displaySettingsConfig } from "./displaySettingsConfig"; // 显示设置面板开关配置
 export { dynamicConfig } from "./dynamicConfig"; // 动态页面配置
