@@ -1,0 +1,72 @@
+---
+import { Icon } from "astro-icon/components";
+import { devicesData } from "@/data/devices";
+import MainGridLayout from "@/layouts/MainGridLayout.astro";
+import "@/styles/pages/common.css";
+import "@/styles/pages/devices.css";
+
+export function getStaticPaths() {
+	return devicesData.flatMap((category) =>
+		category.devices.map((device) => ({
+			params: { slug: device.slug },
+			props: { device, category },
+		})),
+	);
+}
+
+const { device, category } = Astro.props;
+const peripheralCategory = devicesData.find((item) => item.name === "外设");
+const associatedPeripherals = (peripheralCategory?.devices ?? []).filter(
+	(peripheral) => peripheral.associatedDevice?.slug === device.slug,
+);
+---
+
+<MainGridLayout title={device.name} description={device.description} heading={device.name}>
+	<section class="page-shell device-detail-page">
+		<a class="device-back" href="/devices/"><Icon name="material-symbols:arrow-back-rounded" /> 返回我的设备</a>
+		<header class="device-detail-hero card-base">
+			{device.image && <img src={device.image} alt={device.name} />}
+			<div>
+				<p class="device-detail-category">{category.name}</p>
+				<h2>{device.name}</h2>
+				{device.description && <p>{device.description}</p>}
+				<div class="device-detail-meta"><span class="device-status" data-status={device.status}>{device.status}</span>{device.purchasedAt && <span>购入：{device.purchasedAt}</span>}{device.associatedDevice && <a class="device-associated-device" href={`/devices/${device.associatedDevice.slug}/`}><Icon name="material-symbols:link-rounded" /> 关联：{device.associatedDevice.name}</a>}</div>
+				{device.linkable !== false && device.url && <a class="device-card-link" href={device.url} target="_blank" rel="noreferrer">设备链接 <Icon name="material-symbols:open-in-new-rounded" /></a>}
+			</div>
+		</header>
+
+		{device.specGroups.map((group) => (
+			<section class="device-detail-section card-base">
+				<h3>{group.title}</h3>
+				<dl class="device-spec-list">{group.items.map((item) => <div><dt>{item.label}</dt><dd class:list={{ "device-spec-with-image": Boolean(item.image) }}><div class="device-spec-content">{item.linkable !== false && item.url ? <a href={item.url} target="_blank" rel="noreferrer">{item.value}<Icon name="material-symbols:open-in-new-rounded" /></a> : <span>{item.value}</span>}{item.image && <a class="device-spec-image-link" href={item.image} target="_blank" rel="noreferrer" aria-label={`放大查看${item.label}图片：${item.value}`}><img class="device-spec-image" src={item.image} alt={`${item.label}：${item.value}`} loading="lazy" /><span class="device-spec-image-preview" aria-hidden="true"><img src={item.image} alt="" /></span></a>}</div></dd></div>)}</dl>
+			</section>
+		))}
+
+		{associatedPeripherals.length > 0 && (
+			<section class="device-detail-section card-base">
+				<h3>关联外设</h3>
+				<p class="device-linked-peripherals-note">以下外设正在与此设备配合使用。</p>
+				<div class="device-accessories">
+					{associatedPeripherals.map((peripheral) => (
+						<a class="device-accessory" href={`/devices/${peripheral.slug}/`}>
+							{peripheral.image ? (
+								<img src={peripheral.image} alt="" loading="lazy" />
+							) : (
+								<div class="device-accessory-icon" aria-hidden="true">
+									<Icon name={peripheral.icon || "material-symbols:devices-other-rounded"} />
+								</div>
+							)}
+							<div>
+								<strong>{peripheral.name}</strong>
+								{peripheral.specs && <span>{peripheral.specs}</span>}
+							</div>
+							<Icon name="material-symbols:arrow-forward-rounded" />
+						</a>
+					))}
+				</div>
+			</section>
+		)}
+
+		{device.accessories.length > 0 && <section class="device-detail-section card-base"><h3>关联外设</h3><div class="device-accessories">{device.accessories.map((accessory) => accessory.linkable !== false && accessory.url ? <a class="device-accessory" href={accessory.url} target="_blank" rel="noreferrer">{accessory.image ? <img src={accessory.image} alt="" /> : accessory.icon && <div class="device-accessory-icon" aria-hidden="true"><Icon name={accessory.icon} /></div>}<div><strong>{accessory.name}</strong><span>{accessory.model}</span>{accessory.description && <small>{accessory.description}</small>}{accessory.associatedDevice && <small class="device-accessory-association">关联设备：{accessory.associatedDevice}</small>}</div><Icon name="material-symbols:open-in-new-rounded" /></a> : <div class="device-accessory">{accessory.image ? <img src={accessory.image} alt="" /> : accessory.icon && <div class="device-accessory-icon" aria-hidden="true"><Icon name={accessory.icon} /></div>}<div><strong>{accessory.name}</strong><span>{accessory.model}</span>{accessory.description && <small>{accessory.description}</small>}{accessory.associatedDevice && <small class="device-accessory-association">关联设备：{accessory.associatedDevice}</small>}</div></div>)}</div></section>}
+	</section>
+</MainGridLayout>

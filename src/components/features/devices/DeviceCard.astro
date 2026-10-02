@@ -1,0 +1,59 @@
+---
+import { Icon } from "astro-icon/components";
+import type { Device } from "@/types/devices";
+
+interface Props {
+	device: Device;
+}
+
+const { device } = Astro.props;
+---
+
+<article class="device-card card-base">
+	<div class="device-card-media">
+		{device.image ? (
+			<a
+				class="device-card-image-link"
+				href={device.image}
+				target="_blank"
+				rel="noreferrer"
+				aria-label={`放大查看${device.name}图片`}
+			>
+				<img src={device.image} alt={device.name} loading="lazy" />
+				<span class="device-card-image-preview" aria-hidden="true">
+					<img src={device.image} alt="" />
+				</span>
+			</a>
+		) : (
+			<div class="device-card-placeholder" aria-hidden="true">
+				<Icon name={device.icon || "material-symbols:devices-other"} />
+			</div>
+		)}
+	</div>
+	<div class="device-card-body">
+		<div class="device-card-heading">
+			<h3><a class="device-card-title" href={`/devices/${device.slug}/`}>{device.name}</a></h3>
+			<span class="device-status" data-status={device.status}>{device.status}</span>
+		</div>
+		{device.specs && <p class="device-card-specs">{device.specs}</p>}
+		{device.description && <p class="device-card-description">{device.description}</p>}
+		{device.associatedDevice && (
+			<a class="device-associated-device" href={`/devices/${device.associatedDevice.slug}/`}>
+				<Icon name="material-symbols:link-rounded" />
+				关联：{device.associatedDevice.name}
+			</a>
+		)}
+		<div class="device-card-actions">
+			<a class="device-card-link" href={`/devices/${device.slug}/`}>
+				查看详情
+				<Icon name="material-symbols:arrow-forward-rounded" />
+			</a>
+			{device.linkable !== false && device.url && (
+				<a class="device-card-link" href={device.url} target="_blank" rel="noreferrer">
+					设备链接
+					<Icon name="material-symbols:open-in-new-rounded" />
+				</a>
+			)}
+		</div>
+	</div>
+</article>

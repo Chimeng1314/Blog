@@ -1,0 +1,124 @@
+---
+import { Icon } from "astro-icon/components";
+import DeviceCard from "@/components/features/devices/DeviceCard.astro";
+import { siteConfig } from "@/config";
+import { devicesData } from "@/data/devices";
+import MainGridLayout from "@/layouts/MainGridLayout.astro";
+import "@/styles/pages/common.css";
+import "@/styles/pages/devices.css";
+
+if (!siteConfig.pages.devices) {
+	return Astro.redirect("/404/");
+}
+
+const title = "我的设备";
+const description = "记录正在使用的设备与桌面装备";
+const deviceCount = devicesData.reduce(
+	(total, category) => total + category.devices.length,
+	0,
+);
+---
+
+<MainGridLayout title={title} description={description} heading={title}>
+	<section class="page-shell devices-page">
+		<header class="card-base page-header devices-header">
+			<div class="page-heading">
+				<div class="page-icon" aria-hidden="true">
+					<Icon name="material-symbols:devices-other-rounded" />
+				</div>
+				<div>
+					<h2>{title}</h2>
+					<p>{description}</p>
+				</div>
+			</div>
+			<div class="page-count" aria-label={`共 ${deviceCount} 台设备`}>
+				<Icon name="material-symbols:devices" />
+				<strong>{deviceCount}</strong>
+				<span>台设备</span>
+			</div>
+		</header>
+
+		<device-filter class="devices-filter">
+			<div class="device-filter-tabs" role="tablist" aria-label="设备分类">
+				<button type="button" role="tab" aria-selected="true" data-category="all">
+					<Icon name="material-symbols:apps-rounded" />
+					全部
+				</button>
+				{devicesData.map((category) => (
+					<button type="button" role="tab" aria-selected="false" data-category={category.name}>
+						<Icon name={category.icon} />
+						{category.name}
+					</button>
+				))}
+			</div>
+
+			<p class="device-filter-summary" aria-live="polite">
+				当前显示 <strong data-visible-count>{deviceCount}</strong> 台设备
+			</p>
+
+			<div class="devices-groups">
+				{devicesData.map((category) => (
+					<section class="device-group" data-group={category.name} aria-labelledby={`device-category-${category.name}`}>
+						<div class="device-group-heading">
+							<Icon name={category.icon} />
+							<h3 id={`device-category-${category.name}`}>{category.name}</h3>
+							<span>{category.devices.length}</span>
+						</div>
+						<div class="devices-grid">
+							{category.devices.map((device) => <DeviceCard device={device} />)}
+						</div>
+					</section>
+				))}
+			</div>
+		</device-filter>
+	</section>
+
+	<script slot="head" is:inline>
+		if (!customElements.get("device-filter")) {
+			class DeviceFilter extends HTMLElement {
+				selectedCategory = "all";
+
+				connectedCallback() {
+					this.addEventListener("click", this.handleClick);
+				}
+
+				disconnectedCallback() {
+					this.removeEventListener("click", this.handleClick);
+				}
+
+				handleClick = (event) => {
+					const target = event.target;
+					if (!(target instanceof Element)) return;
+					const button = target.closest("button[data-category]");
+					if (!button) return;
+					this.selectedCategory = button.dataset.category || "all";
+					this.update();
+				};
+
+				update() {
+					this.querySelectorAll("button[data-category]").forEach((button) => {
+						button.setAttribute(
+							"aria-selected",
+							String(button.dataset.category === this.selectedCategory),
+						);
+					});
+					this.querySelectorAll("[data-group]").forEach((group) => {
+						group.toggleAttribute(
+							"hidden",
+							this.selectedCategory !== "all" &&
+								group.dataset.group !== this.selectedCategory,
+						);
+					});
+					const visible =
+						this.selectedCategory === "all"
+							? this.querySelectorAll(".device-card").length
+							: this.querySelectorAll(`[data-group="${this.selectedCategory}"] .device-card`).length;
+					const count = this.querySelector("[data-visible-count]");
+					if (count) count.textContent = String(visible);
+				}
+			}
+
+			customElements.define("device-filter", DeviceFilter);
+		}
+	</script>
+</MainGridLayout>

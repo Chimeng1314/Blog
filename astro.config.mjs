@@ -266,6 +266,9 @@ export default defineConfig({
 				if (pathname === "/myanimelist/" && !siteConfig.pages.mal) {
 					return false;
 				}
+				if (pathname === "/devices/" && !siteConfig.pages.devices) {
+					return false;
+				}
 				// 动态页评论嵌入页：评论关闭时重定向到 /404/，不应进 sitemap
 				if (
 					pathname === "/dynamic/comments/" &&

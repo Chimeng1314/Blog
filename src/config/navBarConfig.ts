@@ -105,6 +105,9 @@ const getDynamicNavBarConfig = (): NavBarConfig => {
             // MyAnimeList
             // LinkPresets.MAL,
 
+            // 我的设备
+            LinkPresets.Devices,
+
             // 站点日历
             LinkPresets.Calendar,
         ],
@@ -273,6 +276,12 @@ export const LinkPresets: Record<string, NavBarLink> = {
         url: "/myanimelist/",
         icon: "material-symbols:menu-book",
         pageKey: "mal",
+    },
+    Devices: {
+        name: "我的设备",
+        url: "/devices/",
+        icon: "material-symbols:devices-other-rounded",
+        pageKey: "devices",
     },
     Calendar: {
         name: "站点日历",

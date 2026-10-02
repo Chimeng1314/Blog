@@ -33,6 +33,8 @@ const pages = resolvePageToggles({
 	vndb: false,
 	// MyAnimeList页面开关
 	mal: false,
+	// 我的设备页面开关
+	devices: true,
 	// 站点日历页面开关
 	calendar: true,
 
