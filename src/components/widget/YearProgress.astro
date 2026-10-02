@@ -1,5 +1,6 @@
 ---
 import { calendarConfig } from "@/config/calendarConfig";
+import { statutoryHolidayYears } from "@/data/calendar/statutory-holidays";
 import { url } from "@/utils/url-utils";
 
 interface Props {
@@ -11,6 +12,27 @@ const { class: className, style } = Astro.props;
 const holidays = calendarConfig.builtinHolidays
 	.filter((holiday) => holiday.date.type === "solar")
 	.map((holiday) => ({ name: holiday.name, ...holiday.date }));
+
+const statutoryHolidayPeriods = Object.values(statutoryHolidayYears)
+	.flatMap((snapshot) => snapshot.days)
+	.filter((day) => day.isOffDay)
+	.sort((a, b) => a.date.localeCompare(b.date))
+	.reduce<{ name: string; start: string; end: string }[]>((periods, day) => {
+		const previous = periods.at(-1);
+		const previousEnd = previous && new Date(`${previous.end}T12:00:00`);
+		if (previousEnd) previousEnd.setDate(previousEnd.getDate() + 1);
+		const isConsecutive =
+			previousEnd &&
+			[
+				previousEnd.getFullYear(),
+				String(previousEnd.getMonth() + 1).padStart(2, "0"),
+				String(previousEnd.getDate()).padStart(2, "0"),
+			].join("-") === day.date;
+
+		if (previous?.name === day.name && isConsecutive) previous.end = day.date;
+		else periods.push({ name: day.name, start: day.date, end: day.date });
+		return periods;
+	}, []);
 ---
 
 <a
@@ -53,7 +75,7 @@ const holidays = calendarConfig.builtinHolidays
 	</div>
 </a>
 
-<script is:inline data-swup-ignore-script define:vars={{ holidays }}>
+<script is:inline data-swup-ignore-script define:vars={{ holidays, statutoryHolidayPeriods }}>
 	function setText(root, selector, value) {
 		const element = root.querySelector(selector);
 		if (element) element.textContent = value;
@@ -83,6 +105,17 @@ const holidays = calendarConfig.builtinHolidays
 			.sort((a, b) => a.date - b.date)[0];
 	}
 
+	function getStatutoryHolidayPeriod(today) {
+		const dateKey = [
+			today.getFullYear(),
+			String(today.getMonth() + 1).padStart(2, "0"),
+			String(today.getDate()).padStart(2, "0"),
+		].join("-");
+		return statutoryHolidayPeriods.find(
+			(period) => period.start <= dateKey && dateKey <= period.end,
+		);
+	}
+
 	function renderYearProgress() {
 		document.querySelectorAll(".year-progress-widget").forEach((root) => {
 			const today = new Date();
@@ -105,6 +138,20 @@ const holidays = calendarConfig.builtinHolidays
 			setText(root, ".week-progress-percent", `${weekPercent.toFixed(1)}%`);
 			setText(root, ".week-progress-label", `本周还剩 ${7 - weekday} 天`);
 			setProgress(root, ".week-progress-bar", weekPercent);
+
+			const statutoryHoliday = getStatutoryHolidayPeriod(midnight);
+			if (statutoryHoliday) {
+				const holidayEnd = new Date(`${statutoryHoliday.end}T00:00:00`);
+				const remainingDays = Math.round((holidayEnd - midnight) / 86400000);
+				setText(root, ".year-progress-holiday-label", `${statutoryHoliday.name}假期中`);
+				setText(
+					root,
+					".year-progress-holiday-days",
+					remainingDays === 0 ? "今天结束" : `还剩 ${remainingDays} 天`,
+				);
+				setText(root, ".year-progress-holiday-date", `假期至 ${statutoryHoliday.end}`);
+				return;
+			}
 
 			const holiday = getNearestSolarHoliday(midnight);
 			if (!holiday) return;
