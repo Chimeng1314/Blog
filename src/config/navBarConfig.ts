@@ -20,60 +20,48 @@ const getDynamicNavBarConfig = (): NavBarConfig => {
     links.push(LinkPresets.Hubs);
 
     // 归档及其子菜单
-    links.push({
-        name: "归档",
-        url: "/archive/",
-        icon: "material-symbols:archive",
-    });
+    links.push(LinkPresets.Archive);
 
     // 留言及其子菜单
-    links.push({
-        name: "留言",
-        url: "/guestbook/",
-        icon: "material-symbols:chat",
-    });
+    links.push(LinkPresets.Guestbook);
 
     // 友链及其子菜单
-    links.push({
-        name: "友链",
-        url: "/friends/",
-        icon: "material-symbols:link-2-rounded",
-    });
+    links.push(LinkPresets.Friends);
 
 
     // 文章及其子菜单
-    links.push({
-        name: "文章",
-        url: "#",
-        icon: "material-symbols:article",
-        children: [
-            // 归档
-            // LinkPresets.Archive,
+    // links.push({
+    //     name: "文章",
+    //     url: "#",
+    //     icon: "material-symbols:article",
+    //     children: [
+    //         // 归档
+    //         // LinkPresets.Archive,
+    //
+    //         // 分类
+    //         // LinkPresets.Categories,
+    //
+    //         // 标签
+    //         // LinkPresets.Tags,
+    //
+    //         // 系列
+    //         // LinkPresets.Series,
+    //     ],
+    // });
 
-            // 分类
-            // LinkPresets.Categories,
-
-            // 标签
-            // LinkPresets.Tags,
-
-            // 系列
-            // LinkPresets.Series,
-        ],
-    });
-
-    //社交及其子菜单
-    links.push({
-        name: "社交",
-        url: "#",
-        icon: "material-symbols:group",
-        children: [
-            // 友链
-            // LinkPresets.Friends,
-
-            // 留言
-            // LinkPresets.Guestbook,
-        ],
-    });
+    // //社交及其子菜单
+    // links.push({
+    //     name: "社交",
+    //     url: "#",
+    //     icon: "material-symbols:group",
+    //     children: [
+    //         // 友链
+    //         // LinkPresets.Friends,
+    //
+    //         // 留言
+    //         // LinkPresets.Guestbook,
+    //     ],
+    // });
 
     // 我的及其子菜单
     links.push({
@@ -94,7 +82,7 @@ const getDynamicNavBarConfig = (): NavBarConfig => {
             // LinkPresets.Booknav,
 
             // 哔哩哔哩追番
-            // LinkPresets.Bilibili,
+            LinkPresets.Bilibili,
 
             // 番组计划
             // LinkPresets.Bangumi,
@@ -115,28 +103,22 @@ const getDynamicNavBarConfig = (): NavBarConfig => {
 
     // 介绍及其子菜单
     links.push({
-        name: "介绍",
+        name: "关于",
         url: "#",
-        icon: "material-symbols:contact-page",
+        icon: "material-symbols:info-rounded",
         children: [
             // 自我介绍
             LinkPresets.About,
 
             // 站点介绍
             LinkPresets.SiteAbout,
-        ],
-    });
 
-    // 关于及其子菜单
-    links.push({
-        name: "关于",
-        url: "#",
-        icon: "material-symbols:info",
-        children: [
-            // 打赏
+            // 赞助
             LinkPresets.Sponsor,
         ],
     });
+
+
 
     // 自定义导航栏链接
     links.push({
@@ -290,7 +272,7 @@ export const LinkPresets: Record<string, NavBarLink> = {
         pageKey: "calendar",
     },
     Sponsor: {
-        name: "打赏",
+        name: "赞助",
         url: "/sponsor/",
         icon: "material-symbols:favorite",
         pageKey: "sponsor",
